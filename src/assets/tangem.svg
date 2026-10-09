@@ -1,6 +1,9 @@
-<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Tangem Hardware Card Emblem -->
-  <rect x="18" y="28" width="64" height="42" rx="8" stroke="#00D2FF" stroke-width="6" fill="rgba(0, 210, 255, 0.12)" />
-  <circle cx="36" cy="49" r="6" fill="#00D2FF" />
-  <path d="M50 43C53 46 53 52 50 55M57 39C62 44 62 54 57 59" stroke="#00D2FF" stroke-width="4.5" stroke-linecap="round" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 20" fill="none">
+  <!-- Official Tangem Geometric Card Emblem directly from tangem.com -->
+  <path
+    fill="#00D2FF"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M3.414.82h7.576c1.195 0 1.792 0 2.249.233.402.203.727.53.932.931.233.457.233 1.054.233 2.249V5.5H0V4.233c0-1.195 0-1.792.233-2.249.203-.401.53-.727.932-.931C1.622.82 2.219.82 3.414.82m10.991 8.64H9.603l.002.665v8.695h1.386c1.195 0 1.792 0 2.25-.233.4-.203.726-.53.931-.931.233-.457.233-1.054.233-2.25zM4.8 9.82H0v5.947c0 1.195 0 1.792.233 2.249.205.401.53.728.932.931.457.233 1.054.233 2.249.233H4.8z"
+  />
 </svg>
