@@ -1,19 +1,82 @@
 import { ref, computed, watch } from 'vue';
-import type { Account, AccountType, Asset, Currency, PortfolioSummary, TimeRange, Transaction } from '../types/portfolio';
+import type { Account, AccountType, Asset, Currency, PortfolioSummary, TimeRange, Transaction, VaultMode, VaultBackup } from '../types/portfolio';
 import { INITIAL_ACCOUNTS, INITIAL_ASSETS, INITIAL_TRANSACTIONS, PERFORMANCE_HISTORY } from '../data/mockData';
 
-const STORAGE_KEY_ASSETS = 'mrsdbskn_portfolio_assets_v4';
-const STORAGE_KEY_ACCOUNTS = 'mrsdbskn_portfolio_accounts_v4';
+const STORAGE_KEY_VAULT_MODE = 'mrsdbskn_vault_mode_v5';
+const STORAGE_KEY_PRIVATE_VAULT = 'mrsdbskn_private_vault_v5';
 const STORAGE_KEY_CURRENCY = 'mrsdbskn_portfolio_currency_v4';
 const STORAGE_KEY_PRIVACY = 'mrsdbskn_portfolio_privacy_v4';
-const STORAGE_KEY_TRANSACTIONS = 'mrsdbskn_portfolio_transactions_v4';
 
+interface PrivateVaultPayload {
+  accounts: Account[];
+  assets: Asset[];
+  transactions: Transaction[];
+}
 
+function getStoredPrivateVault(): PrivateVaultPayload | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PRIVATE_VAULT);
+    if (raw) return JSON.parse(raw);
+
+    // Auto-migrate from previous v4 keys if present on this user's machine
+    const rawAssets = localStorage.getItem('mrsdbskn_portfolio_assets_v4');
+    const rawAccounts = localStorage.getItem('mrsdbskn_portfolio_accounts_v4');
+    const rawTxs = localStorage.getItem('mrsdbskn_portfolio_transactions_v4');
+    if (rawAssets && rawAccounts && rawTxs) {
+      const parsedAssets: Asset[] = JSON.parse(rawAssets);
+      const hasRealHoldings = parsedAssets.some(a => a.id === 'ubs-key4-gold' || a.id === 'neon-coin' || a.id === 'bnc-wbeth');
+      if (hasRealHoldings) {
+        const payload: PrivateVaultPayload = {
+          accounts: JSON.parse(rawAccounts),
+          assets: parsedAssets,
+          transactions: JSON.parse(rawTxs),
+        };
+        localStorage.setItem(STORAGE_KEY_PRIVATE_VAULT, JSON.stringify(payload));
+        return payload;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load private vault from storage', e);
+  }
+  return null;
+}
+
+function getInitialVaultMode(): VaultMode {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_VAULT_MODE) as VaultMode;
+    if (saved === 'private' || saved === 'demo') {
+      return saved;
+    }
+  } catch (e) {}
+  // Default to private if private vault exists on this browser, otherwise public demo fallback
+  return getStoredPrivateVault() ? 'private' : 'demo';
+}
+
+const vaultMode = ref<VaultMode>(getInitialVaultMode());
+
+function initPortfolioState() {
+  const privateData = getStoredPrivateVault();
+  if (vaultMode.value === 'private' && privateData) {
+    return {
+      accounts: privateData.accounts,
+      assets: privateData.assets,
+      transactions: privateData.transactions,
+    };
+  }
+  // Public Demo Fallback
+  return {
+    accounts: JSON.parse(JSON.stringify(INITIAL_ACCOUNTS)),
+    assets: JSON.parse(JSON.stringify(INITIAL_ASSETS)),
+    transactions: JSON.parse(JSON.stringify(INITIAL_TRANSACTIONS)),
+  };
+}
+
+const initialState = initPortfolioState();
 
 // Reactive State
-const accounts = ref<Account[]>(loadAccounts());
-const assets = ref<Asset[]>(loadAssets());
-const transactions = ref<Transaction[]>(loadTransactions());
+const accounts = ref<Account[]>(initialState.accounts);
+const assets = ref<Asset[]>(initialState.assets);
+const transactions = ref<Transaction[]>(initialState.transactions);
 const currency = ref<Currency>((localStorage.getItem(STORAGE_KEY_CURRENCY) as Currency) || 'CHF');
 const isPrivacyMasked = ref<boolean>(localStorage.getItem(STORAGE_KEY_PRIVACY) === 'true');
 const selectedAccountId = ref<AccountType | 'all'>('all');
@@ -29,60 +92,27 @@ const fxRates: Record<Currency, number> = {
   EUR: 1.055,
 };
 
-function loadAccounts(): Account[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
-    if (raw) {
-      const parsed: Account[] = JSON.parse(raw);
-      const ubsAcc = parsed.find(a => a.id === 'ubs');
-      if (ubsAcc && ubsAcc.lastSync === '08.10.2026') {
-        ubsAcc.lastSync = '31.07.2026';
-      }
-      return parsed;
-    }
-  } catch (e) {
-    console.error('Failed to load accounts', e);
+// Persistence Watchers
+function persistPrivateVault() {
+  if (vaultMode.value === 'private') {
+    const payload: PrivateVaultPayload = {
+      accounts: accounts.value,
+      assets: assets.value,
+      transactions: transactions.value,
+    };
+    localStorage.setItem(STORAGE_KEY_PRIVATE_VAULT, JSON.stringify(payload));
   }
-  return INITIAL_ACCOUNTS;
 }
 
-function loadAssets(): Asset[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_ASSETS);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    console.error('Failed to load assets', e);
-  }
-  return INITIAL_ASSETS;
-}
-
-function loadTransactions(): Transaction[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    console.error('Failed to load transactions', e);
-  }
-  return INITIAL_TRANSACTIONS;
-}
-
-// Watchers for persistence
-watch(assets, (newVal) => {
-  localStorage.setItem(STORAGE_KEY_ASSETS, JSON.stringify(newVal));
-}, { deep: true });
-
-watch(accounts, (newVal) => {
-  localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(newVal));
-}, { deep: true });
-
-watch(transactions, (newVal) => {
-  localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(newVal));
-}, { deep: true });
-
+watch(assets, persistPrivateVault, { deep: true });
+watch(accounts, persistPrivateVault, { deep: true });
+watch(transactions, persistPrivateVault, { deep: true });
+watch(vaultMode, (newMode) => {
+  localStorage.setItem(STORAGE_KEY_VAULT_MODE, newMode);
+});
 watch(currency, (newVal) => {
   localStorage.setItem(STORAGE_KEY_CURRENCY, newVal);
 });
-
 watch(isPrivacyMasked, (newVal) => {
   localStorage.setItem(STORAGE_KEY_PRIVACY, String(newVal));
 });
@@ -343,7 +373,13 @@ export function usePortfolio() {
     return assets.value.filter(a => !isAssetDemo(a)).length;
   });
 
+  const lastClearedDemoPositions = ref<Asset[]>([]);
+
   function clearDemoPositions(): number {
+    const removed = assets.value.filter(isAssetDemo);
+    if (removed.length > 0) {
+      lastClearedDemoPositions.value = [...removed];
+    }
     const prevCount = assets.value.length;
     assets.value = assets.value.filter(a => !isAssetDemo(a));
     // Also remove any demo-tagged transactions if any
@@ -352,9 +388,11 @@ export function usePortfolio() {
   }
 
   function restoreDemoPositions(): number {
-    const demoAssets = INITIAL_ASSETS.filter(isAssetDemo);
+    const sourcePool = lastClearedDemoPositions.value.length > 0
+      ? lastClearedDemoPositions.value
+      : INITIAL_ASSETS.filter(isAssetDemo);
     const existingIds = new Set(assets.value.map(a => a.id));
-    const toAdd = demoAssets.filter(a => !existingIds.has(a.id));
+    const toAdd = sourcePool.filter(a => !existingIds.has(a.id));
     if (toAdd.length > 0) {
       assets.value = [...assets.value, ...JSON.parse(JSON.stringify(toAdd))];
     }
@@ -408,18 +446,12 @@ export function usePortfolio() {
   }
 
   function resetToMockData() {
-    assets.value = JSON.parse(JSON.stringify(INITIAL_ASSETS));
-    accounts.value = JSON.parse(JSON.stringify(INITIAL_ACCOUNTS));
-    transactions.value = JSON.parse(JSON.stringify(INITIAL_TRANSACTIONS));
-    localStorage.removeItem(STORAGE_KEY_ASSETS);
-    localStorage.removeItem(STORAGE_KEY_ACCOUNTS);
-    localStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
+    switchVaultMode('demo');
   }
 
   function refreshData() {
     isRefreshing.value = true;
     setTimeout(() => {
-      // Simulate live price feed jitter (+/- 0.3% to 0.8% micro movement)
       assets.value = assets.value.map(a => {
         const deltaPct = (Math.random() * 1.2 - 0.5) / 100;
         const newPrice = Math.round((a.currentPrice * (1 + deltaPct)) * 100) / 100;
@@ -431,51 +463,111 @@ export function usePortfolio() {
           sparkline: newSparkline,
         };
       });
-
-      // Update sync time
-      const acc = accounts.value.find(a => a.id === 'ubs');
-      if (acc) acc.lastSync = 'Just now (Live Spot)';
-
       isRefreshing.value = false;
     }, 700);
   }
 
-  // Export encrypted backup JSON
+  function switchVaultMode(targetMode: VaultMode): boolean {
+    if (targetMode === 'demo') {
+      vaultMode.value = 'demo';
+      accounts.value = JSON.parse(JSON.stringify(INITIAL_ACCOUNTS));
+      assets.value = JSON.parse(JSON.stringify(INITIAL_ASSETS));
+      transactions.value = JSON.parse(JSON.stringify(INITIAL_TRANSACTIONS));
+      return true;
+    } else {
+      const stored = getStoredPrivateVault();
+      if (stored) {
+        vaultMode.value = 'private';
+        accounts.value = stored.accounts;
+        assets.value = stored.assets;
+        transactions.value = stored.transactions;
+        return true;
+      }
+      return false;
+    }
+  }
+
+  function clearPrivateVault() {
+    localStorage.removeItem(STORAGE_KEY_PRIVATE_VAULT);
+    switchVaultMode('demo');
+  }
+
+  const hasPrivateVaultStored = computed(() => {
+    return Boolean(getStoredPrivateVault());
+  });
+
+  // Export private backup JSON (mrsdbskn-portfolio-backup.json)
   function exportBackup() {
-    const data = {
-      version: '1.0',
+    let exportAccounts = accounts.value;
+    let exportAssets = assets.value;
+    let exportTxs = transactions.value;
+
+    const stored = getStoredPrivateVault();
+    if (vaultMode.value === 'demo' && stored) {
+      exportAccounts = stored.accounts;
+      exportAssets = stored.assets;
+      exportTxs = stored.transactions;
+    }
+
+    const backupData: VaultBackup = {
+      version: '1.0.0',
       exportedAt: new Date().toISOString(),
+      appName: 'mrsdbskn-portfolio',
+      vaultMode: 'private',
       currency: currency.value,
-      accounts: accounts.value,
-      assets: assets.value,
-      transactions: transactions.value,
+      accounts: exportAccounts,
+      assets: exportAssets,
+      transactions: exportTxs,
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `aura_portfolio_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = 'mrsdbskn-portfolio-backup.json';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
   // Import backup JSON
-  function importBackup(jsonString: string): boolean {
+  function importBackup(jsonString: string): { success: boolean; message: string; count?: number } {
     try {
-      const data = JSON.parse(jsonString);
+      const data: VaultBackup = JSON.parse(jsonString);
       if (Array.isArray(data.assets) && Array.isArray(data.accounts)) {
-        assets.value = data.assets;
-        accounts.value = data.accounts;
-        if (Array.isArray(data.transactions)) {
-          transactions.value = data.transactions;
-        }
+        const payload: PrivateVaultPayload = {
+          accounts: data.accounts,
+          assets: data.assets,
+          transactions: Array.isArray(data.transactions) ? data.transactions : [],
+        };
+        localStorage.setItem(STORAGE_KEY_PRIVATE_VAULT, JSON.stringify(payload));
+        vaultMode.value = 'private';
+        accounts.value = payload.accounts;
+        assets.value = payload.assets;
+        transactions.value = payload.transactions;
         if (data.currency) currency.value = data.currency;
-        return true;
+
+        return {
+          success: true,
+          message: `Successfully loaded private vault: ${payload.assets.length} positions and ${payload.transactions.length} transactions restored!`,
+          count: payload.assets.length,
+        };
       }
-    } catch (e) {
+      return { success: false, message: 'Invalid backup format: missing accounts or assets array.' };
+    } catch (e: any) {
       console.error('Invalid backup file', e);
+      return { success: false, message: e.message || 'Failed to parse JSON file' };
     }
-    return false;
+  }
+
+  async function importBackupFromFile(file: File): Promise<{ success: boolean; message: string; count?: number }> {
+    try {
+      const text = await file.text();
+      return importBackup(text);
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Failed to read file' };
+    }
   }
 
   function addTransactions(newTxs: Transaction[]) {
@@ -672,6 +764,11 @@ export function usePortfolio() {
     refreshData,
     exportBackup,
     importBackup,
+    importBackupFromFile,
+    vaultMode,
+    switchVaultMode,
+    clearPrivateVault,
+    hasPrivateVaultStored,
     addTransactions,
   };
 }

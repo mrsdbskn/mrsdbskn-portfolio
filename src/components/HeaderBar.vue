@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
 import type { Currency } from '../types/portfolio';
-import { Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
+import { Eye, EyeOff, RefreshCw, Lock, Shield } from 'lucide-vue-next';
 import logoImg from '../assets/logo.png';
 
 const {
@@ -14,13 +14,40 @@ const {
   refreshData,
   accounts,
   assets,
+  vaultMode,
+  switchVaultMode,
+  importBackupFromFile,
 } = usePortfolio();
+
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const fundedVaultsCount = computed(() => {
   return accounts.value.filter(acc => assets.value.some(a => a.accountId === acc.id)).length;
 });
 
 const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
+
+function handleToggleVaultMode() {
+  if (vaultMode.value === 'private') {
+    switchVaultMode('demo');
+  } else {
+    const success = switchVaultMode('private');
+    if (!success) {
+      // Prompt user to pick their backup file
+      fileInputRef.value?.click();
+    }
+  }
+}
+
+async function handleFileSelected(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (!target.files || target.files.length === 0) return;
+  const file = target.files[0];
+  const res = await importBackupFromFile(file);
+  if (!res.success) {
+    alert(res.message);
+  }
+}
 </script>
 
 <template>
@@ -43,6 +70,27 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
     </div>
 
     <div class="header-right">
+      <!-- Hidden file input for quick backup restore -->
+      <input
+        ref="fileInputRef"
+        type="file"
+        accept=".json"
+        style="display: none"
+        @change="handleFileSelected"
+      />
+
+      <!-- Vault Mode Switcher Pill -->
+      <button
+        class="vault-mode-pill"
+        :class="vaultMode"
+        @click="handleToggleVaultMode"
+        :title="vaultMode === 'private' ? 'Private Vault Active (Stored locally on your device). Click to switch to Demo Mode.' : 'Public Demo Mode (Clean placeholders). Click to unlock Private Vault.'"
+      >
+        <Lock v-if="vaultMode === 'private'" :size="12" class="text-accent" />
+        <Shield v-else :size="12" class="text-cyan" />
+        <span>{{ vaultMode === 'private' ? 'Private Vault' : 'Demo Mode' }}</span>
+      </button>
+
       <!-- Currency Selector -->
       <div class="currency-toggle">
         <button
@@ -209,6 +257,40 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
   background: rgba(248, 208, 48, 0.18);
   color: #F8D030;
   box-shadow: 0 0 10px rgba(248, 208, 48, 0.25);
+}
+
+.vault-mode-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 11px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.vault-mode-pill:hover {
+  transform: translateY(-1px);
+}
+
+.vault-mode-pill.private {
+  background: rgba(248, 208, 48, 0.12);
+  border-color: rgba(248, 208, 48, 0.45);
+  color: #F8D030;
+  box-shadow: 0 0 12px rgba(248, 208, 48, 0.2);
+}
+
+.vault-mode-pill.demo {
+  background: rgba(0, 210, 255, 0.1);
+  border-color: rgba(0, 210, 255, 0.35);
+  color: #00d2ff;
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.15);
 }
 
 .action-btn {

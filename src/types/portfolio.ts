@@ -72,3 +72,15 @@ export interface Transaction {
   assetClass?: string;
 }
 
+export type VaultMode = 'demo' | 'private';
+
+export interface VaultBackup {
+  version: string;
+  exportedAt: string;
+  appName: string;
+  vaultMode: 'private';
+  accounts: Account[];
+  assets: Asset[];
+  transactions: Transaction[];
+  currency?: Currency;
+}

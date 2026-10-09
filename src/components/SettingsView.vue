@@ -31,6 +31,10 @@ const {
   clearDemoPositions,
   restoreDemoPositions,
   fxRates,
+  vaultMode,
+  switchVaultMode,
+  clearPrivateVault,
+  hasPrivateVaultStored,
 } = usePortfolio();
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -38,6 +42,30 @@ const restoreStatus = ref<string>('');
 
 function triggerFileInput() {
   fileInputRef.value?.click();
+}
+
+function handleSwitchToDemo() {
+  switchVaultMode('demo');
+  restoreStatus.value = 'Switched to Public Demo Mode! Safe for screen sharing or public viewing.';
+  setTimeout(() => { restoreStatus.value = ''; }, 3500);
+}
+
+function handleSwitchToPrivate() {
+  const ok = switchVaultMode('private');
+  if (ok) {
+    restoreStatus.value = 'Switched to My Private Vault! Showing your real holdings.';
+  } else {
+    triggerFileInput();
+  }
+  setTimeout(() => { restoreStatus.value = ''; }, 3500);
+}
+
+function handleClearPrivateVault() {
+  if (confirm('Are you sure you want to delete your private vault data from this browser? Make sure you have downloaded a backup (mrsdbskn-portfolio-backup.json) first.')) {
+    clearPrivateVault();
+    restoreStatus.value = 'Private vault removed from this browser. Reverted to public demo mode.';
+    setTimeout(() => { restoreStatus.value = ''; }, 3500);
+  }
 }
 
 function handleFileRestore(e: Event) {
@@ -49,12 +77,12 @@ function handleFileRestore(e: Event) {
   reader.onload = (evt) => {
     const text = evt.target?.result as string;
     if (text) {
-      const ok = importBackup(text);
-      if (ok) {
-        restoreStatus.value = 'Backup restored successfully!';
-        setTimeout(() => { restoreStatus.value = ''; }, 3000);
+      const res = importBackup(text);
+      if (res.success) {
+        restoreStatus.value = res.message;
+        setTimeout(() => { restoreStatus.value = ''; }, 4000);
       } else {
-        alert('Invalid backup file format.');
+        alert(res.message);
       }
     }
   };
@@ -206,26 +234,78 @@ function handleClearAll() {
       </div>
     </div>
 
-    <!-- Backup & Restore Card -->
+    <!-- Private Vault & GitHub Privacy Shield Card -->
     <div class="settings-card glass-card">
       <div class="card-title-row">
-        <Shield :size="18" class="text-cyan" />
-        <span class="card-title">Zero-Server Client-Side Backup</span>
+        <Shield :size="18" class="text-accent" />
+        <span class="card-title">Private Vault & GitHub Pages Privacy Shield</span>
       </div>
       <p class="card-desc">
-        Since this app is hosted on <strong>GitHub Pages</strong>, all data lives exclusively in your browser's private storage. Export your portfolio to an offline JSON file for safe-keeping.
+        Your real UBS Gold, Neon Coinbase, and Binance data lives <strong>exclusively inside your browser's private local storage</strong> on this device. Anyone visiting your public GitHub Pages link will only see anonymous dummy numbers.
       </p>
 
+      <!-- Active Mode Status Box -->
+      <div class="demo-status-box" :class="vaultMode === 'private' ? 'status-private' : 'status-demo'">
+        <div class="status-left">
+          <div class="status-indicator-badge">
+            {{ vaultMode === 'private' ? '🔐 PRIVATE VAULT ACTIVE' : '🛡️ PUBLIC DEMO MODE' }}
+          </div>
+          <div class="status-text">
+            <template v-if="vaultMode === 'private'">
+              Displaying your personal portfolio. All changes are stored offline on this device.
+              <span class="status-sub">Zero cloud tracking. Public GitHub visitors cannot access your data.</span>
+            </template>
+            <template v-else>
+              Displaying anonymous demo placeholders. Safe for public viewing and screen-sharing.
+              <span class="status-sub">Switch to Private Vault or restore your backup file anytime.</span>
+            </template>
+          </div>
+        </div>
+
+        <div class="status-right">
+          <button
+            v-if="vaultMode === 'private'"
+            class="btn btn-secondary"
+            @click="handleSwitchToDemo"
+            title="Switch to public demo profile"
+          >
+            <Shield :size="15" />
+            <span>Switch to Demo Mode</span>
+          </button>
+          <button
+            v-else
+            class="btn btn-primary"
+            @click="handleSwitchToPrivate"
+            title="Switch to your private vault stored in browser"
+          >
+            <Lock :size="15" />
+            <span>{{ hasPrivateVaultStored ? 'Open Private Vault' : 'Restore Private Vault' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Backup Actions -->
       <div class="backup-actions">
         <button class="btn btn-primary" @click="exportBackup">
           <Download :size="16" />
-          <span>Export Encrypted Backup (.json)</span>
+          <span>Download Backup (mrsdbskn-portfolio-backup.json)</span>
         </button>
 
         <button class="btn btn-secondary" @click="triggerFileInput">
           <Upload :size="16" />
-          <span>Restore from Backup</span>
+          <span>Restore from Backup (.json)</span>
         </button>
+
+        <button
+          v-if="hasPrivateVaultStored"
+          class="btn btn-secondary text-loss"
+          @click="handleClearPrivateVault"
+          title="Delete private data from this browser's local storage"
+        >
+          <Trash2 :size="15" />
+          <span>Clear Local Private Data</span>
+        </button>
+
         <input
           ref="fileInputRef"
           type="file"
@@ -419,13 +499,18 @@ function handleClearAll() {
 }
 
 .demo-status-box.status-demo {
-  background: rgba(248, 208, 48, 0.07);
-  border-color: rgba(248, 208, 48, 0.35);
+  background: rgba(0, 210, 255, 0.06);
+  border-color: rgba(0, 210, 255, 0.3);
 }
 
 .demo-status-box.status-clean {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.3);
+}
+
+.demo-status-box.status-private {
+  background: rgba(248, 208, 48, 0.08);
+  border-color: rgba(248, 208, 48, 0.4);
 }
 
 .status-left {
@@ -447,9 +532,15 @@ function handleClearAll() {
 }
 
 .status-demo .status-indicator-badge {
+  background: rgba(0, 210, 255, 0.18);
+  color: #00d2ff;
+  border: 1px solid rgba(0, 210, 255, 0.35);
+}
+
+.status-private .status-indicator-badge {
   background: rgba(248, 208, 48, 0.2);
   color: #F8D030;
-  border: 1px solid rgba(248, 208, 48, 0.4);
+  border: 1px solid rgba(248, 208, 48, 0.45);
 }
 
 .status-clean .status-indicator-badge {
