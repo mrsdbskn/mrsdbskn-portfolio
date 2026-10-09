@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
       <!-- Donut Canvas with Center Stats -->
       <div class="donut-wrapper">
         <div class="canvas-box">
-          <canvas ref={canvasRef}></canvas>
+          <canvas ref="canvasRef"></canvas>
         </div>
         <div class="donut-center-text">
           <div class="center-count">{{ categoryAllocation.length }}</div>

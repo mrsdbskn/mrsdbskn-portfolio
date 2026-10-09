@@ -236,7 +236,7 @@ onBeforeUnmount(() => {
 
     <!-- Chart Canvas Container -->
     <div class="canvas-container">
-      <canvas ref={canvasRef}></canvas>
+      <canvas ref="canvasRef"></canvas>
     </div>
 
     <!-- Chart Legend Info -->

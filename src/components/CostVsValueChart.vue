@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="canvas-container">
-      <canvas ref={canvasRef}></canvas>
+      <canvas ref="canvasRef"></canvas>
     </div>
   </div>
 </template>

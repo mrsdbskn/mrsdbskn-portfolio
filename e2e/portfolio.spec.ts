@@ -119,10 +119,11 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await page.screenshot({ path: path.join(screenshotsDir, '09-modal-tangem-vault-detail.png') });
     await page.locator('.close-btn').click();
 
-    // 4. Open UBS key4 gold vault details & verify order tranches ledger
+    // 4. Open UBS key4 gold vault details & verify order tranches ledger & execution chart
     await page.locator('.account-card:has-text("UBS key4 gold")').click();
     await expect(page.locator('.vault-title')).toHaveText('UBS key4 gold');
     await expect(page.locator('.stat-number').first()).toBeVisible();
+    await expect(page.locator('.asset-chart-container')).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, '10-modal-ubs-gold-vault.png') });
 
     // Switch to 'Order Tranches' subtab
@@ -134,10 +135,11 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await page.screenshot({ path: path.join(screenshotsDir, '11-modal-ubs-gold-tranches.png') });
     await page.locator('.close-btn').click();
 
-    // 5. Open Neon Invest vault details & verify Coinbase position and trade ledger
+    // 5. Open Neon Invest vault details & verify Coinbase position, buys/sells chart and trade ledger
     await page.locator('.account-card:has-text("Neon Invest")').click();
     await expect(page.locator('.vault-title')).toHaveText('Neon Invest');
     await expect(page.locator('.holding-card:has-text("COIN")')).toBeVisible();
+    await expect(page.locator('.asset-chart-container')).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, '12-modal-neon-vault.png') });
 
     // Switch to Neon 'Order Tranches' subtab
@@ -148,12 +150,13 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await page.screenshot({ path: path.join(screenshotsDir, '13-modal-neon-tranches.png') });
     await page.locator('.close-btn').click();
 
-    // 6. Open Binance Global vault details & verify WBETH, BNB, USDC holdings & trade ledger
+    // 6. Open Binance Global vault details & verify WBETH, BNB, USDC holdings, switcher & execution chart
     await page.locator('.account-card:has-text("Binance Global")').click();
     await expect(page.locator('.vault-title')).toHaveText('Binance Global');
     await expect(page.locator('.holding-card:has-text("WBETH")')).toBeVisible();
     await expect(page.locator('.holding-card:has-text("BNB")')).toBeVisible();
     await expect(page.locator('.holding-card:has-text("USDC")')).toBeVisible();
+    await expect(page.locator('.asset-chart-container')).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, '14-modal-binance-vault.png') });
 
     // Switch to Binance 'Order Tranches' subtab

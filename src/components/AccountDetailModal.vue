@@ -12,7 +12,9 @@ import {
   History,
   CheckCircle2,
   ArrowUpRight,
+  LineChart,
 } from 'lucide-vue-next';
+import AssetExecutionChart from './AssetExecutionChart.vue';
 
 const props = defineProps<{
   accountId: AccountType | null;
@@ -36,6 +38,7 @@ const {
 } = usePortfolio();
 
 const activeVaultTab = ref<'holdings' | 'transactions'>('holdings');
+const selectedAssetId = ref<string | null>(null);
 
 const currentAccount = computed(() => {
   if (!props.accountId) return null;
@@ -57,10 +60,24 @@ const accountTransactions = computed(() => {
   return transactions.value.filter(t => t.accountId === props.accountId);
 });
 
+const activeAssetForChart = computed<Asset | null>(() => {
+  if (accountAssets.value.length === 0) return null;
+  if (selectedAssetId.value) {
+    const found = accountAssets.value.find(a => a.id === selectedAssetId.value);
+    if (found) return found;
+  }
+  return accountAssets.value[0];
+});
+
 watch(() => props.isOpen, (open) => {
   if (open) {
     activeVaultTab.value = 'holdings';
+    selectedAssetId.value = null;
   }
+});
+
+watch(() => props.accountId, () => {
+  selectedAssetId.value = null;
 });
 </script>
 
@@ -155,6 +172,15 @@ watch(() => props.isOpen, (open) => {
 
       <!-- Holdings List Tab -->
       <div v-if="activeVaultTab === 'holdings'" class="holdings-section">
+        <!-- Interactive Price & Execution Chart for selected holding -->
+        <AssetExecutionChart
+          v-if="activeAssetForChart"
+          :asset="activeAssetForChart"
+          :transactions="accountTransactions"
+          :available-assets="accountAssets"
+          @select-asset="a => selectedAssetId = a.id"
+        />
+
         <div class="holdings-header">
           <h4 class="holdings-title">Positions in this Vault ({{ accountAssets.length }})</h4>
           <div class="header-action-group">
@@ -175,11 +201,21 @@ watch(() => props.isOpen, (open) => {
         </div>
 
         <div class="holdings-list">
-          <div v-for="asset in accountAssets" :key="asset.id" class="holding-card">
+          <div
+            v-for="asset in accountAssets"
+            :key="asset.id"
+            class="holding-card"
+            :class="{ 'selected-holding': activeAssetForChart?.id === asset.id }"
+            @click="selectedAssetId = asset.id"
+          >
             <div class="h-main">
               <div class="h-left">
                 <span class="h-sym">{{ asset.symbol }}</span>
                 <span class="h-name">{{ asset.name }}</span>
+                <span v-if="activeAssetForChart?.id === asset.id" class="active-chart-pill">
+                  <LineChart :size="11" />
+                  <span>Chart Active</span>
+                </span>
               </div>
               <div class="h-right font-mono">
                 <span class="h-val">{{ formatMoney(asset.quantity * asset.currentPrice) }}</span>
@@ -195,7 +231,7 @@ watch(() => props.isOpen, (open) => {
             <div class="h-sub">
               <span class="font-mono">{{ asset.quantity }} {{ asset.unit }}</span>
               <span class="font-mono">Avg: CHF {{ asset.avgBuyPrice }} | Now: CHF {{ asset.currentPrice }}</span>
-              <div class="h-actions">
+              <div class="h-actions" @click.stop>
                 <button class="btn-action-icon" @click="emit('edit-asset', asset)" title="Edit">
                   <Edit2 :size="13" />
                 </button>
@@ -293,7 +329,7 @@ watch(() => props.isOpen, (open) => {
 
 .modal-card {
   width: 100%;
-  max-width: 620px;
+  max-width: 680px;
   max-height: 90vh;
   overflow-y: auto;
   background: rgba(14, 20, 32, 0.96);
@@ -488,6 +524,31 @@ watch(() => props.isOpen, (open) => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.holding-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.holding-card.selected-holding {
+  border-color: rgba(248, 208, 48, 0.45);
+  background: rgba(248, 208, 48, 0.04);
+  box-shadow: 0 0 16px rgba(248, 208, 48, 0.06);
+}
+
+.active-chart-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0b0f19;
+  background: #F8D030;
+  padding: 2px 7px;
+  border-radius: 4px;
 }
 
 .h-main {
