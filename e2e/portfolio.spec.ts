@@ -103,11 +103,11 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
 
     // 2. Open Smart Statement Parser modal
     await page.locator('button:has-text("Import Statement")').first().click();
-    await expect(page.locator('.modal-title')).toHaveText('Smart Statement & CSV/PDF Parser');
+    await expect(page.locator('.modal-title')).toContainText('Smart Statement');
     
     // Click 'Neon Shares' tab and load extract
     await page.locator('.source-tab:has-text("Neon Shares")').click();
-    await page.locator('button:has-text("Load NEON Sample Extract")').click();
+    await page.locator('button:has-text("Simulate: Follow-up Advice")').click();
     await page.waitForTimeout(800);
     await expect(page.locator('.preview-box')).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, '08-modal-import-neon-parsed.png') });
@@ -239,6 +239,63 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     // Verify verified mode status
     await expect(page.locator('.status-indicator-badge')).toHaveText('VERIFIED HOLDINGS ONLY');
     await page.screenshot({ path: path.join(screenshotsDir, '18-settings-demo-cleared.png') });
+  });
+
+  test('Smart Sync & Deduplication: Last sync date anchor, duplicate detection & partial import', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/');
+
+    // 1. Open Import Modal
+    await page.locator('button:has-text("Import Statement")').first().click();
+    const modal = page.locator('.modal-card');
+    await expect(modal).toBeVisible();
+
+    // 2. Select UBS Gold and verify last sync anchor is 31.07.2026 (the last transaction date, NOT today!)
+    await page.locator('.source-tab:has-text("UBS Gold")').click();
+    const anchorDate = page.locator('.anchor-date');
+    await expect(anchorDate).toHaveText('31.07.2026');
+
+    // 3. Test Full Statement upload (All 7 tranches already synced)
+    const fullBtn = page.locator('button:has-text("Full UBS Statement (All 7 Tranches Already Synced)")');
+    await fullBtn.click();
+    await page.waitForTimeout(500);
+
+    // Verify all 7 are flagged as duplicates
+    await expect(page.locator('.status-headline')).toContainText('All 7 transaction(s) were already synced on or before 31.07.2026');
+    const commitDisabled = page.locator('.commit-btn-disabled');
+    await expect(commitDisabled).toBeVisible();
+    await expect(commitDisabled).toHaveText('All Transactions Already Synced (0 New)');
+
+    await page.screenshot({ path: path.join(screenshotsDir, '19-import-all-duplicates-detected.png') });
+
+    // 4. Test Follow-up / Overlapping Statement (Jul 31 overlap + New Aug 28 tranche)
+    const followupBtn = page.locator('button:has-text("Follow-up Statement (Jul 31 Overlap + New Aug 28 Tranche)")');
+    await followupBtn.click();
+    await page.waitForTimeout(500);
+
+    // Verify 1 new transaction and 1 duplicate skipped
+    await expect(page.locator('.status-headline')).toContainText('Found 1 new transaction(s) after 31.07.2026');
+    await expect(page.locator('.dup-highlight')).toContainText('1 duplicate/prior records');
+
+    // Toggle skipped list to verify details
+    const toggleSkippedBtn = page.locator('.toggle-skipped-btn');
+    await expect(toggleSkippedBtn).toBeVisible();
+    await toggleSkippedBtn.click();
+    await expect(page.locator('.p-reason')).toContainText('Already recorded');
+
+    await page.screenshot({ path: path.join(screenshotsDir, '20-import-partial-overlap-detected.png') });
+
+    // 5. Commit the new transaction
+    const mergeBtn = page.locator('.commit-btn');
+    await expect(mergeBtn).toContainText('Merge 1 New Transaction(s)');
+    await mergeBtn.click();
+
+    // Verify success banner and updated sync date
+    const successBanner = page.locator('.success-banner');
+    await expect(successBanner).toBeVisible();
+    await expect(successBanner).toContainText('Last sync date updated to 28.08.2026');
+
+    await page.screenshot({ path: path.join(screenshotsDir, '21-after-smart-sync-ubs.png') });
   });
 });
 

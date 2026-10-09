@@ -45,7 +45,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     iconName: 'Landmark',
     color: '#eab308',
     connectedAddress: 'Portfolio: 0269 00103951 0001',
-    lastSync: '08.10.2026',
+    lastSync: '31.07.2026',
     syncType: 'Direct Metals Depot',
     description: 'UBS key4 gold allocated fine gold custody (Valor: 16018250, ISIN: QT0160182504).',
   },

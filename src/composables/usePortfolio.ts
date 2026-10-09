@@ -32,7 +32,14 @@ const fxRates: Record<Currency, number> = {
 function loadAccounts(): Account[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: Account[] = JSON.parse(raw);
+      const ubsAcc = parsed.find(a => a.id === 'ubs');
+      if (ubsAcc && ubsAcc.lastSync === '08.10.2026') {
+        ubsAcc.lastSync = '31.07.2026';
+      }
+      return parsed;
+    }
   } catch (e) {
     console.error('Failed to load accounts', e);
   }
@@ -475,6 +482,151 @@ export function usePortfolio() {
     transactions.value = [...newTxs, ...transactions.value];
   }
 
+  function parseDateToTimestamp(dateStr: string): number {
+    if (!dateStr) return 0;
+    const clean = dateStr.trim();
+    // Match DD.MM.YYYY [HH:MM[:SS]]
+    const dmyMatch = clean.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1;
+      const year = parseInt(dmyMatch[3], 10);
+      const h = dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 0;
+      const m = dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0;
+      const s = dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0;
+      return new Date(year, month, day, h, m, s).getTime();
+    }
+    // Match YYYY-MM-DD [HH:MM[:SS]]
+    const ymdMatch = clean.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (ymdMatch) {
+      const year = parseInt(ymdMatch[1], 10);
+      const month = parseInt(ymdMatch[2], 10) - 1;
+      const day = parseInt(ymdMatch[3], 10);
+      const h = ymdMatch[4] ? parseInt(ymdMatch[4], 10) : 0;
+      const m = ymdMatch[5] ? parseInt(ymdMatch[5], 10) : 0;
+      const s = ymdMatch[6] ? parseInt(ymdMatch[6], 10) : 0;
+      return new Date(year, month, day, h, m, s).getTime();
+    }
+    const parsed = Date.parse(clean);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  function getLastSyncDateForAccount(accountId: AccountType): string {
+    const accTxs = transactions.value.filter(t => t.accountId === accountId);
+    if (accTxs.length === 0) {
+      const acc = accounts.value.find(a => a.id === accountId);
+      return acc?.lastSync || 'Never synced';
+    }
+    const sorted = [...accTxs].sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
+    return sorted[0].date;
+  }
+
+  function isDuplicateTransaction(tx: Partial<Transaction>): boolean {
+    if (!tx.accountId) return false;
+
+    // 1. Check by orderRef or externalRef
+    const ref = (tx.orderRef || tx.externalRef)?.trim();
+    if (ref) {
+      const match = transactions.value.find(t => 
+        t.accountId === tx.accountId && 
+        ((t.orderRef && t.orderRef.trim() === ref) || (t.externalRef && t.externalRef.trim() === ref))
+      );
+      if (match) return true;
+    }
+
+    // 2. Check by accountId + date + quantity + price/value
+    if (tx.date && tx.quantity !== undefined) {
+      const match = transactions.value.find(t => {
+        if (t.accountId !== tx.accountId) return false;
+        if (t.date !== tx.date) return false;
+        const qtyDiff = Math.abs(t.quantity - (tx.quantity || 0));
+        if (qtyDiff > 0.0001) return false;
+
+        if (tx.pricePerUnit !== undefined && t.pricePerUnit !== undefined) {
+          if (Math.abs(t.pricePerUnit - tx.pricePerUnit) < 0.05) return true;
+        }
+        if (tx.totalValue !== undefined && t.totalValue !== undefined) {
+          if (Math.abs(t.totalValue - tx.totalValue) < 1.0) return true;
+        }
+        return true;
+      });
+      if (match) return true;
+    }
+
+    return false;
+  }
+
+  function mergeTransactionsBatch(accountId: AccountType, newTxs: Transaction[]): { addedCount: number; newLastSync: string } {
+    if (newTxs.length === 0) {
+      return { addedCount: 0, newLastSync: getLastSyncDateForAccount(accountId) };
+    }
+
+    // Add transactions to ledger
+    transactions.value = [...newTxs, ...transactions.value];
+
+    // Update corresponding holding in assets.value
+    if (accountId === 'ubs') {
+      const ubsAsset = assets.value.find(a => a.accountId === 'ubs');
+      const addedGrams = newTxs.reduce((sum, t) => sum + (t.type === 'BUY' ? t.quantity : -t.quantity), 0);
+      const addedCost = newTxs.reduce((sum, t) => sum + (t.type === 'BUY' ? t.totalValue : 0), 0);
+
+      if (ubsAsset) {
+        const oldCost = ubsAsset.quantity * ubsAsset.avgBuyPrice;
+        const newTotalGrams = +(ubsAsset.quantity + addedGrams).toFixed(2);
+        const newTotalCost = oldCost + addedCost;
+        const newAvgBuyPrice = newTotalGrams > 0 ? +(newTotalCost / newTotalGrams).toFixed(2) : ubsAsset.avgBuyPrice;
+        const totalTranches = transactions.value.filter(t => t.accountId === 'ubs').length;
+
+        updateAsset(ubsAsset.id, {
+          quantity: newTotalGrams,
+          avgBuyPrice: newAvgBuyPrice,
+          notes: `${totalTranches} Tranches | Portfolio: 0269 00103951 0001 | Valor: 16018250 | ISIN: QT0160182504`,
+        });
+      } else {
+        const newTotalGrams = +addedGrams.toFixed(2);
+        const newAvgBuyPrice = newTotalGrams > 0 ? +(addedCost / newTotalGrams).toFixed(2) : 118.50;
+        addAsset({
+          accountId: 'ubs',
+          symbol: 'UBS key4 gold',
+          name: `UBS key4 gold (${newTotalGrams}g Feingold)`,
+          category: 'gold',
+          quantity: newTotalGrams,
+          unit: 'grams',
+          avgBuyPrice: newAvgBuyPrice,
+          currentPrice: 118.50,
+          price24hChange: 0.35,
+          notes: `${newTxs.length} Tranches | Portfolio: 0269 00103951 0001 | Valor: 16018250`,
+        });
+      }
+    } else if (accountId === 'neon') {
+      const coinAsset = assets.value.find(a => a.accountId === 'neon' && a.symbol === 'COIN');
+      const addedShares = newTxs.reduce((sum, t) => sum + (t.type === 'BUY' ? t.quantity : -t.quantity), 0);
+      const addedCost = newTxs.reduce((sum, t) => sum + (t.type === 'BUY' ? t.totalValue : 0), 0);
+
+      if (coinAsset) {
+        const oldCost = coinAsset.quantity * coinAsset.avgBuyPrice;
+        const newQty = coinAsset.quantity + addedShares;
+        const newTotalCost = oldCost + addedCost;
+        const newAvg = newQty > 0 ? +(newTotalCost / newQty).toFixed(2) : coinAsset.avgBuyPrice;
+        updateAsset(coinAsset.id, {
+          quantity: newQty,
+          avgBuyPrice: newAvg,
+        });
+      }
+    }
+
+    // Update account's lastSync to latest transaction date
+    const sortedNew = [...newTxs].sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
+    const latestDate = sortedNew[0].date;
+
+    const acc = accounts.value.find(a => a.id === accountId);
+    if (acc) {
+      acc.lastSync = latestDate;
+    }
+
+    return { addedCount: newTxs.length, newLastSync: latestDate };
+  }
+
   return {
     accounts,
     assets,
@@ -502,6 +654,10 @@ export function usePortfolio() {
     isAssetDemo,
     clearDemoPositions,
     restoreDemoPositions,
+    parseDateToTimestamp,
+    getLastSyncDateForAccount,
+    isDuplicateTransaction,
+    mergeTransactionsBatch,
     convert,
     formatMoney,
     getAssetMetrics,
