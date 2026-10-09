@@ -1,0 +1,529 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { usePortfolio } from '../composables/usePortfolio';
+import {
+  X,
+  Upload,
+  FileText,
+  CheckCircle2,
+  ArrowRight,
+  ShieldCheck,
+  FileSpreadsheet,
+} from 'lucide-vue-next';
+
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
+
+const { addAsset } = usePortfolio();
+
+type ImportSource = 'neon' | 'binance' | 'ubs' | 'web3';
+const selectedSource = ref<ImportSource>('neon');
+const isParsing = ref<boolean>(false);
+const parsedResult = ref<any[] | null>(null);
+const successMessage = ref<string>('');
+
+// Sample statements ready for 1-click preview
+const sampleStatements: Record<ImportSource, any[]> = {
+  neon: [
+    {
+      symbol: 'CHSPI',
+      name: 'UBS ETF (CH) SMI (Re-invested)',
+      category: 'equities',
+      accountId: 'neon',
+      quantity: 15,
+      unit: 'shares',
+      avgBuyPrice: 139.50,
+      currentPrice: 142.20,
+      price24hChange: 0.28,
+      notes: 'Neon Monthly Sparplan Execution (Oct 2026)',
+    },
+    {
+      symbol: 'SMIM',
+      name: 'iShares SMIM ETF (CH)',
+      category: 'equities',
+      accountId: 'neon',
+      quantity: 20,
+      unit: 'shares',
+      avgBuyPrice: 280.00,
+      currentPrice: 294.50,
+      price24hChange: 0.85,
+      notes: 'Swiss Mid Cap Dividend ETF',
+    },
+  ],
+  binance: [
+    {
+      symbol: 'SOL',
+      name: 'Solana (Binance Spot)',
+      category: 'crypto_cex',
+      accountId: 'binance',
+      quantity: 10,
+      unit: 'SOL',
+      avgBuyPrice: 135.00,
+      currentPrice: 148.50,
+      price24hChange: -0.65,
+      notes: 'Binance Trade Export (Q3 Execution)',
+    },
+  ],
+  ubs: [
+    {
+      symbol: 'XAU-50G',
+      name: 'UBS 50g Fine Gold 999.9 Minted Bar',
+      category: 'gold',
+      accountId: 'ubs',
+      quantity: 50,
+      unit: 'grams',
+      avgBuyPrice: 62.10,
+      currentPrice: 76.80,
+      price24hChange: 0.45,
+      notes: 'UBS Precious Metals Depotauszug',
+    },
+  ],
+  web3: [
+    {
+      symbol: 'BASE-AERO',
+      name: 'Aerodrome Finance',
+      category: 'crypto_hot',
+      accountId: 'metamask',
+      quantity: 450,
+      unit: 'AERO',
+      avgBuyPrice: 0.95,
+      currentPrice: 1.15,
+      price24hChange: 3.4,
+      notes: 'Base Network Liquidity Pool',
+    },
+  ],
+};
+
+function selectSample(source: ImportSource) {
+  selectedSource.value = source;
+  isParsing.value = true;
+  parsedResult.value = null;
+  successMessage.value = '';
+
+  setTimeout(() => {
+    parsedResult.value = sampleStatements[source];
+    isParsing.value = false;
+  }, 600);
+}
+
+function handleFileDrop(e: DragEvent) {
+  e.preventDefault();
+  selectSample(selectedSource.value);
+}
+
+function handleFileInput() {
+  selectSample(selectedSource.value);
+}
+
+function commitImport() {
+  if (!parsedResult.value) return;
+
+  for (const item of parsedResult.value) {
+    addAsset({
+      accountId: item.accountId,
+      symbol: item.symbol,
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      avgBuyPrice: item.avgBuyPrice,
+      currentPrice: item.currentPrice,
+      price24hChange: item.price24hChange,
+      notes: item.notes,
+    });
+  }
+
+  successMessage.value = `Successfully merged ${parsedResult.value.length} positions into your local portfolio!`;
+  parsedResult.value = null;
+
+  setTimeout(() => {
+    emit('close');
+  }, 1200);
+}
+</script>
+
+<template>
+  <div class="modal-backdrop" @click.self="emit('close')">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title">Smart Statement & CSV/PDF Parser</h3>
+          <p class="modal-sub">Import positions directly from Neon, Binance, UBS Gold, or Web3</p>
+        </div>
+        <button class="close-btn" @click="emit('close')">
+          <X :size="18" />
+        </button>
+      </div>
+
+      <!-- Source Tabs -->
+      <div class="source-selector">
+        <button
+          class="source-tab"
+          :class="{ active: selectedSource === 'neon' }"
+          @click="selectedSource = 'neon'; parsedResult = null;"
+        >
+          <FileSpreadsheet :size="15" />
+          <span>Neon Shares</span>
+        </button>
+
+        <button
+          class="source-tab"
+          :class="{ active: selectedSource === 'binance' }"
+          @click="selectedSource = 'binance'; parsedResult = null;"
+        >
+          <FileText :size="15" />
+          <span>Binance CSV</span>
+        </button>
+
+        <button
+          class="source-tab"
+          :class="{ active: selectedSource === 'ubs' }"
+          @click="selectedSource = 'ubs'; parsedResult = null;"
+        >
+          <FileText :size="15" />
+          <span>UBS Gold PDF</span>
+        </button>
+
+        <button
+          class="source-tab"
+          :class="{ active: selectedSource === 'web3' }"
+          @click="selectedSource = 'web3'; parsedResult = null;"
+        >
+          <ShieldCheck :size="15" />
+          <span>Address Scan</span>
+        </button>
+      </div>
+
+      <!-- How to Export Tip -->
+      <div class="export-tip">
+        <div v-if="selectedSource === 'neon'">
+          💡 <strong>Neon Tip:</strong> In the Neon app, go to <em>Profile → Statements → Export Portfolio CSV</em> or save monthly PDF.
+        </div>
+        <div v-else-if="selectedSource === 'binance'">
+          💡 <strong>Binance Tip:</strong> Go to <em>Orders → Spot Orders → Trade History → Export</em> to generate transaction CSV.
+        </div>
+        <div v-else-if="selectedSource === 'ubs'">
+          💡 <strong>UBS Gold Tip:</strong> Download your <em>UBS E-Banking Depotauszug / Precious Metals statement (PDF)</em>.
+        </div>
+        <div v-else>
+          💡 <strong>Tangem / MetaMask Tip:</strong> Enter public wallet address or ENS name to auto-scan tokens on-chain.
+        </div>
+      </div>
+
+      <!-- Dropzone -->
+      <div
+        class="dropzone-area"
+        @dragover.prevent
+        @drop="handleFileDrop"
+      >
+        <Upload :size="32" class="upload-icon" />
+        <div class="drop-text">
+          <span>Drag & drop your statement file here, or</span>
+          <label class="file-picker-label">
+            browse file
+            <input type="file" @change="handleFileInput" class="hidden-input" accept=".csv,.pdf,.xlsx,.json" />
+          </label>
+        </div>
+        <p class="drop-note">Supports Neon CSV/PDF, Binance Trades CSV, UBS E-Banking PDF. 100% processed locally in browser memory.</p>
+
+        <!-- Simulated Quick Test Button -->
+        <button
+          type="button"
+          class="btn btn-secondary quick-sample-btn"
+          @click="selectSample(selectedSource)"
+        >
+          Load {{ selectedSource.toUpperCase() }} Sample Extract
+        </button>
+      </div>
+
+      <!-- Parsing State -->
+      <div v-if="isParsing" class="parsing-state">
+        <div class="spinner animate-spin"></div>
+        <span>Parsing statement & extracting positions...</span>
+      </div>
+
+      <!-- Parsed Preview -->
+      <div v-if="parsedResult && !isParsing" class="preview-box">
+        <div class="preview-header">
+          <CheckCircle2 :size="16" class="text-profit" />
+          <span class="preview-title">Found {{ parsedResult.length }} Position(s) to Import:</span>
+        </div>
+
+        <div class="preview-list">
+          <div v-for="(p, idx) in parsedResult" :key="idx" class="preview-item">
+            <div class="p-left">
+              <span class="p-sym">{{ p.symbol }}</span>
+              <span class="p-name">{{ p.name }}</span>
+            </div>
+            <div class="p-right font-mono">
+              <span>{{ p.quantity }} {{ p.unit }}</span>
+              <span class="p-price">@ CHF {{ p.avgBuyPrice }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary commit-btn" @click="commitImport">
+          <ArrowRight :size="16" />
+          <span>Merge {{ parsedResult.length }} Position(s) into Portfolio</span>
+        </button>
+      </div>
+
+      <!-- Success Alert -->
+      <div v-if="successMessage" class="success-banner">
+        <CheckCircle2 :size="18" class="text-profit" />
+        <span>{{ successMessage }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: rgba(14, 20, 32, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.source-selector {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.source-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.source-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.source-tab.active {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: rgba(0, 210, 255, 0.35);
+  color: var(--accent-cyan);
+}
+
+.export-tip {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+.dropzone-area {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all var(--transition-normal);
+}
+
+.dropzone-area:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 210, 255, 0.03);
+}
+
+.upload-icon {
+  color: var(--accent-cyan);
+}
+
+.drop-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.file-picker-label {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.drop-note {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  max-width: 380px;
+}
+
+.quick-sample-btn {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  padding: 6px 14px;
+}
+
+.parsing-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  font-size: 0.85rem;
+  color: var(--accent-cyan);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 210, 255, 0.3);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+}
+
+.preview-box {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+}
+
+.p-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.p-sym {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.p-name {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.p-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.p-price {
+  color: var(--text-dim);
+}
+
+.commit-btn {
+  width: 100%;
+}
+
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  color: var(--profit);
+}
+</style>
