@@ -259,14 +259,55 @@ export function usePortfolio() {
       }
     }
 
-    return Object.entries(categories).map(([key, cat]) => ({
-      key,
-      label: cat.label,
-      account: cat.account,
-      valueCHF: cat.value,
-      percentage: total > 0 ? (cat.value / total) * 100 : 0,
-      color: cat.color,
-    })).sort((a, b) => b.valueCHF - a.valueCHF);
+    return Object.entries(categories)
+      .filter(([_, cat]) => cat.value > 0 || assets.value.length === 0)
+      .map(([key, cat]) => ({
+        key,
+        label: cat.label,
+        account: cat.account,
+        valueCHF: cat.value,
+        percentage: total > 0 ? (cat.value / total) * 100 : 0,
+        color: cat.color,
+      })).sort((a, b) => b.valueCHF - a.valueCHF);
+  });
+
+  // Dynamic Performance History that scales with current net worth
+  const dynamicPerformanceHistory = computed(() => {
+    const currentNetWorth = portfolioSummary.value.totalNetWorth;
+    const currentCost = portfolioSummary.value.totalCostBasis;
+
+    if (assets.value.length === 0 || currentNetWorth === 0) {
+      const emptyHistory: Record<string, typeof PERFORMANCE_HISTORY['1M']> = {};
+      for (const [key, points] of Object.entries(PERFORMANCE_HISTORY)) {
+        emptyHistory[key] = points.map(p => ({
+          ...p,
+          value: 0,
+          costBasis: 0,
+        }));
+      }
+      return emptyHistory;
+    }
+
+    const result: Record<string, typeof PERFORMANCE_HISTORY['1M']> = {};
+    for (const [key, points] of Object.entries(PERFORMANCE_HISTORY)) {
+      if (points.length === 0) {
+        result[key] = [];
+        continue;
+      }
+      const lastPoint = points[points.length - 1];
+      const valueRatio = lastPoint.value > 0 ? currentNetWorth / lastPoint.value : 1;
+      const costRatio = lastPoint.costBasis > 0 ? currentCost / lastPoint.costBasis : 1;
+
+      result[key] = points.map((p, idx) => {
+        const isLast = idx === points.length - 1;
+        return {
+          ...p,
+          value: isLast ? currentNetWorth : Math.round(p.value * valueRatio),
+          costBasis: isLast ? currentCost : Math.round(p.costBasis * costRatio),
+        };
+      });
+    }
+    return result;
   });
 
   // Top Gainers and Losers
@@ -277,6 +318,41 @@ export function usePortfolio() {
   const topLosers = computed(() => {
     return [...enrichedAssets.value].sort((a, b) => a.pnlPercent - b.pnlPercent).slice(0, 3);
   });
+
+  // Demo Data Helpers
+  function isAssetDemo(asset: Asset): boolean {
+    return Boolean(asset.isDemo || asset.accountId === 'tangem' || asset.accountId === 'metamask');
+  }
+
+  const hasDemoData = computed<boolean>(() => {
+    return assets.value.some(isAssetDemo);
+  });
+
+  const demoAssetCount = computed<number>(() => {
+    return assets.value.filter(isAssetDemo).length;
+  });
+
+  const realAssetCount = computed<number>(() => {
+    return assets.value.filter(a => !isAssetDemo(a)).length;
+  });
+
+  function clearDemoPositions(): number {
+    const prevCount = assets.value.length;
+    assets.value = assets.value.filter(a => !isAssetDemo(a));
+    // Also remove any demo-tagged transactions if any
+    transactions.value = transactions.value.filter(t => t.accountId !== 'tangem' && t.accountId !== 'metamask');
+    return prevCount - assets.value.length;
+  }
+
+  function restoreDemoPositions(): number {
+    const demoAssets = INITIAL_ASSETS.filter(isAssetDemo);
+    const existingIds = new Set(assets.value.map(a => a.id));
+    const toAdd = demoAssets.filter(a => !existingIds.has(a.id));
+    if (toAdd.length > 0) {
+      assets.value = [...assets.value, ...JSON.parse(JSON.stringify(toAdd))];
+    }
+    return toAdd.length;
+  }
 
   // Actions
   function togglePrivacy() {
@@ -419,7 +495,13 @@ export function usePortfolio() {
     categoryAllocation,
     topGainers,
     topLosers,
-    performanceHistory: PERFORMANCE_HISTORY,
+    performanceHistory: dynamicPerformanceHistory,
+    hasDemoData,
+    demoAssetCount,
+    realAssetCount,
+    isAssetDemo,
+    clearDemoPositions,
+    restoreDemoPositions,
     convert,
     formatMoney,
     getAssetMetrics,

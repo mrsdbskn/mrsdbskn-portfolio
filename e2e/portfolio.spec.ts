@@ -165,6 +165,81 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await page.screenshot({ path: path.join(screenshotsDir, '15-modal-binance-tranches.png') });
     await page.locator('.close-btn').click();
   });
+
+  test('Demo Data Clearing: Table banner quick clear, Settings management & Undo', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/');
+
+    // 1. Verify Demo Data Active banner is visible initially in AssetTable
+    const demoBanner = page.locator('.demo-table-banner');
+    await expect(demoBanner).toBeVisible();
+    await expect(page.locator('.demo-pill')).toHaveText('DEMO DATA ACTIVE');
+
+    // Initially 12 positions (7 demo + 5 verified)
+    await expect(page.locator('.asset-row')).toHaveCount(12);
+
+    // 2. Click 'Clear Demo Data' on the table banner
+    const clearDemoBtn = page.locator('.btn-clear-demo-table');
+    await clearDemoBtn.click();
+
+    // Verify toast appeared
+    const toast = page.locator('.table-toast-msg');
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText('Cleared 7 demo positions');
+
+    // Demo banner should disappear
+    await expect(demoBanner).not.toBeVisible();
+
+    // Now exactly 5 verified real positions remain: UBS, Neon, and Binance
+    await expect(page.locator('.asset-row')).toHaveCount(5);
+    await expect(page.locator('.asset-symbol:has-text("UBS key4 gold")')).toBeVisible();
+    await expect(page.locator('.asset-symbol:has-text("COIN")')).toBeVisible();
+    await expect(page.locator('.asset-symbol:has-text("WBETH")')).toBeVisible();
+    await expect(page.locator('.asset-symbol:has-text("BNB")')).toBeVisible();
+    await expect(page.locator('.asset-symbol:has-text("USDC")')).toBeVisible();
+
+    // Demo assets (BTC, ETH, SOL from Tangem) are gone
+    await expect(page.locator('.account-tag:has-text("Tangem Wallet")')).not.toBeVisible();
+
+    // Capture screenshot of portfolio with ONLY real verified assets
+    await page.screenshot({ path: path.join(screenshotsDir, '16-cleared-demo-dashboard.png') });
+
+    // 3. Test Undo / Restore from toast
+    const undoBtn = page.locator('.btn-undo-link');
+    await expect(undoBtn).toBeVisible();
+    await undoBtn.click();
+
+    // Demo banner should reappear with 12 positions
+    await expect(page.locator('.demo-table-banner')).toBeVisible();
+    await expect(page.locator('.asset-row')).toHaveCount(12);
+
+    // 4. Navigate to Settings and test Demo Management Card
+    const settingsNav = page.locator('.nav-tab-btn:has-text("Settings")');
+    if (await settingsNav.isVisible()) {
+      await settingsNav.click();
+    } else {
+      // In desktop view, click bottom nav or settings tab
+      await page.locator('button.nav-tab-btn:has-text("Settings")').click();
+    }
+    await page.waitForTimeout(300);
+
+    // Verify Demo Management Card
+    const demoCard = page.locator('.settings-card:has-text("Demo Data & Portfolio Management")');
+    await expect(demoCard).toBeVisible();
+    await expect(page.locator('.status-indicator-badge')).toHaveText('DEMO DATA ACTIVE');
+    await page.screenshot({ path: path.join(screenshotsDir, '17-settings-demo-management.png') });
+
+    // Accept browser confirm dialog and click Clear Demo Data in Settings
+    page.once('dialog', async dialog => {
+      await dialog.accept();
+    });
+    await page.locator('.btn-clear-demo').click();
+    await page.waitForTimeout(300);
+
+    // Verify verified mode status
+    await expect(page.locator('.status-indicator-badge')).toHaveText('VERIFIED HOLDINGS ONLY');
+    await page.screenshot({ path: path.join(screenshotsDir, '18-settings-demo-cleared.png') });
+  });
 });
 
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
 import type { Currency } from '../types/portfolio';
 import { Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
@@ -11,7 +12,13 @@ const {
   togglePrivacy,
   isRefreshing,
   refreshData,
+  accounts,
+  assets,
 } = usePortfolio();
+
+const fundedVaultsCount = computed(() => {
+  return accounts.value.filter(acc => assets.value.some(a => a.accountId === acc.id)).length;
+});
 
 const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
 </script>
@@ -31,7 +38,7 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
       </div>
       <div class="status-indicator">
         <span class="live-dot"></span>
-        <span class="status-label">5 Vaults Connected</span>
+        <span class="status-label">{{ fundedVaultsCount }} Vaults Active</span>
       </div>
     </div>
 

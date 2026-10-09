@@ -19,6 +19,7 @@ const {
   formatMoney,
   selectedAccountId,
   setSelectedAccount,
+  hasDemoData,
 } = usePortfolio();
 
 function handleCardClick(accId: AccountType) {
@@ -66,7 +67,9 @@ function handleCardClick(accId: AccountType) {
           </div>
 
           <div class="account-badge-pill" :style="{ color: acc.color, borderColor: `${acc.color}30` }">
-            {{ acc.badge }}
+            <span>{{ acc.badge }}</span>
+            <span v-if="hasDemoData && (acc.id === 'tangem' || acc.id === 'metamask')" class="demo-tag-mini">Demo</span>
+            <span v-else-if="acc.id === 'ubs' || acc.id === 'neon' || acc.id === 'binance'" class="verified-tag-mini">Verified</span>
           </div>
         </div>
 
@@ -220,6 +223,30 @@ function handleCardClick(accId: AccountType) {
   border-radius: var(--radius-full);
   border: 1px solid;
   background: rgba(255, 255, 255, 0.03);
+  display: inline-flex;
+  align-items: center;
+}
+
+.demo-tag-mini {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: rgba(248, 208, 48, 0.25);
+  color: #F8D030;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  letter-spacing: 0.04em;
+}
+
+.verified-tag-mini {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--profit);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  letter-spacing: 0.04em;
 }
 
 .account-details {

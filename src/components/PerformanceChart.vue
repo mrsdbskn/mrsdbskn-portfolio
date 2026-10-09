@@ -26,7 +26,7 @@ function initChart() {
   const ctx = canvasRef.value.getContext('2d');
   if (!ctx) return;
 
-  const currentData = performanceHistory[selectedTimeRange.value] || performanceHistory['1M'];
+  const currentData = performanceHistory.value[selectedTimeRange.value] || performanceHistory.value['1M'];
   const labels = currentData.map(d => d.date);
   const values = currentData.map(d => convert(d.value));
   const costs = currentData.map(d => convert(d.costBasis));
@@ -147,7 +147,7 @@ function initChart() {
 
 function updateChart() {
   if (!chartInstance) return;
-  const currentData = performanceHistory[selectedTimeRange.value] || performanceHistory['1M'];
+  const currentData = performanceHistory.value[selectedTimeRange.value] || performanceHistory.value['1M'];
   const labels = currentData.map(d => d.date);
   const values = currentData.map(d => convert(d.value));
   const costs = currentData.map(d => convert(d.costBasis));
@@ -181,7 +181,7 @@ function updateChart() {
   chartInstance.update();
 }
 
-watch([selectedTimeRange, currency, showCostBasis], () => {
+watch([selectedTimeRange, currency, showCostBasis, performanceHistory], () => {
   updateChart();
 });
 

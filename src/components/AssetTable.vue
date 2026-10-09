@@ -11,6 +11,9 @@ import {
   Trash2,
   Plus,
   Coins,
+  Sparkles,
+  CheckCircle2,
+  Undo2,
 } from 'lucide-vue-next';
 
 const emit = defineEmits<{
@@ -26,7 +29,32 @@ const {
   selectedAccountId,
   setSelectedAccount,
   accounts,
+  hasDemoData,
+  demoAssetCount,
+  clearDemoPositions,
+  restoreDemoPositions,
 } = usePortfolio();
+
+const tableStatusMsg = ref<string>('');
+const canRestoreDemo = ref<boolean>(false);
+
+function handleClearDemo() {
+  const count = clearDemoPositions();
+  tableStatusMsg.value = `Cleared ${count} demo positions! Now displaying your verified UBS, Neon & Binance holdings only.`;
+  canRestoreDemo.value = true;
+  setTimeout(() => {
+    tableStatusMsg.value = '';
+  }, 6000);
+}
+
+function handleRestoreDemo() {
+  const added = restoreDemoPositions();
+  tableStatusMsg.value = `Restored ${added} demo positions (Tangem & MetaMask).`;
+  canRestoreDemo.value = false;
+  setTimeout(() => {
+    tableStatusMsg.value = '';
+  }, 4000);
+}
 
 type SortKey = 'value' | 'pnl' | 'change' | 'name';
 const sortKey = ref<SortKey>('value');
@@ -109,6 +137,35 @@ function getSparklinePoints(sparkline: number[]): string {
           <span>Add Position</span>
         </button>
       </div>
+    </div>
+
+    <!-- Demo Data Table Banner -->
+    <div v-if="hasDemoData" class="demo-table-banner">
+      <div class="demo-banner-info">
+        <div class="demo-pill">
+          <Sparkles :size="12" />
+          <span>DEMO DATA ACTIVE</span>
+        </div>
+        <div class="demo-text">
+          Currently displaying <strong>{{ demoAssetCount }} demo positions</strong> in Tangem & MetaMask alongside verified UBS, Neon & Binance holdings.
+        </div>
+      </div>
+      <button class="btn-clear-demo-table" @click="handleClearDemo" title="Remove demo assets and keep verified holdings">
+        <Trash2 :size="13" />
+        <span>Clear Demo Data</span>
+      </button>
+    </div>
+
+    <!-- Notification Toast if demo data cleared -->
+    <div v-if="tableStatusMsg" class="table-toast-msg">
+      <div class="toast-left">
+        <CheckCircle2 :size="15" class="text-profit" />
+        <span>{{ tableStatusMsg }}</span>
+      </div>
+      <button v-if="canRestoreDemo" class="btn-undo-link" @click="handleRestoreDemo">
+        <Undo2 :size="12" />
+        <span>Undo / Restore</span>
+      </button>
     </div>
 
     <!-- Category Filter Tabs -->
@@ -206,6 +263,7 @@ function getSparklinePoints(sparkline: number[]): string {
                       <VaultLogo :type="asset.accountId" :size="12" />
                       <span>{{ asset.accountName }}</span>
                     </span>
+                    <span v-if="asset.isDemo || asset.accountId === 'tangem' || asset.accountId === 'metamask'" class="demo-chip">DEMO</span>
                   </div>
                   <span class="asset-fullname">{{ asset.name }}</span>
                 </div>
@@ -390,6 +448,116 @@ function getSparklinePoints(sparkline: number[]): string {
   border-color: var(--accent-cyan);
   box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
   width: 260px;
+}
+
+.demo-table-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: rgba(248, 208, 48, 0.08);
+  border: 1px solid rgba(248, 208, 48, 0.35);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.demo-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demo-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(248, 208, 48, 0.22);
+  color: #F8D030;
+  border: 1px solid rgba(248, 208, 48, 0.45);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.demo-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.demo-text strong {
+  color: var(--text-primary);
+}
+
+.btn-clear-demo-table {
+  background: rgba(248, 208, 48, 0.18);
+  border: 1px solid rgba(248, 208, 48, 0.45);
+  color: #F8D030;
+  font-weight: 700;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-clear-demo-table:hover {
+  background: rgba(248, 208, 48, 0.32);
+  color: #ffffff;
+  border-color: #F8D030;
+  box-shadow: 0 0 14px rgba(248, 208, 48, 0.35);
+}
+
+.table-toast-msg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  color: var(--profit);
+}
+
+.toast-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-undo-link {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-undo-link:hover {
+  color: #ffffff;
+}
+
+.demo-chip {
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: rgba(248, 208, 48, 0.18);
+  color: #F8D030;
+  border: 1px solid rgba(248, 208, 48, 0.35);
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
 }
 
 .category-tabs {

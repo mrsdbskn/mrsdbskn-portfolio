@@ -19,6 +19,7 @@ export interface Asset {
   price24hChange: number; // percentage e.g. 2.45
   sparkline: number[];
   notes?: string;
+  isDemo?: boolean;
 }
 
 export interface Account {

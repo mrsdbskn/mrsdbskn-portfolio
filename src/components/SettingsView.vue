@@ -12,6 +12,8 @@ import {
   Globe,
   CheckCircle2,
   Trash2,
+  Sparkles,
+  Undo2,
 } from 'lucide-vue-next';
 
 const {
@@ -23,6 +25,11 @@ const {
   importBackup,
   resetToMockData,
   clearAllPositions,
+  hasDemoData,
+  demoAssetCount,
+  realAssetCount,
+  clearDemoPositions,
+  restoreDemoPositions,
   fxRates,
 } = usePortfolio();
 
@@ -54,9 +61,25 @@ function handleFileRestore(e: Event) {
   reader.readAsText(file);
 }
 
+function handleClearDemo() {
+  if (confirm(`Are you sure you want to clear the ${demoAssetCount.value} demo positions (Tangem & MetaMask)? Your verified UBS, Neon, and Binance holdings will be kept.`)) {
+    const removed = clearDemoPositions();
+    restoreStatus.value = `Cleared ${removed} demo positions! Showing verified UBS Gold, Neon Coinbase & Binance holdings only.`;
+    setTimeout(() => { restoreStatus.value = ''; }, 4000);
+  }
+}
+
+function handleRestoreDemo() {
+  const added = restoreDemoPositions();
+  restoreStatus.value = `Restored ${added} sample demo positions (Tangem & MetaMask).`;
+  setTimeout(() => { restoreStatus.value = ''; }, 3500);
+}
+
 function handleReset() {
-  if (confirm('Are you sure you want to reset your portfolio back to the initial demo data? Any custom entries will be replaced.')) {
+  if (confirm('Are you sure you want to reset your portfolio back to the initial demo template? Any custom entries will be replaced.')) {
     resetToMockData();
+    restoreStatus.value = 'Portfolio reset to default demo template!';
+    setTimeout(() => { restoreStatus.value = ''; }, 3500);
   }
 }
 
@@ -116,6 +139,73 @@ function handleClearAll() {
       </div>
     </div>
 
+    <!-- Demo Data & Portfolio Management Card -->
+    <div class="settings-card glass-card">
+      <div class="card-title-row">
+        <Sparkles :size="18" class="text-accent" />
+        <span class="card-title">Demo Data & Portfolio Management</span>
+      </div>
+      <p class="card-desc">
+        Easily manage sample demo holdings vs. your real verified assets. You can clear the placeholder Tangem and MetaMask data while keeping your real UBS Gold, Neon Coinbase, and Binance holdings intact.
+      </p>
+
+      <div class="demo-status-box" :class="hasDemoData ? 'status-demo' : 'status-clean'">
+        <div class="status-left">
+          <div class="status-indicator-badge">
+            {{ hasDemoData ? 'DEMO DATA ACTIVE' : 'VERIFIED HOLDINGS ONLY' }}
+          </div>
+          <div class="status-text">
+            <template v-if="hasDemoData">
+              <strong>{{ demoAssetCount }} demo positions</strong> currently loaded in Tangem & MetaMask.
+              <span class="status-sub">Your {{ realAssetCount }} verified positions (UBS Gold, Neon Coinbase, Binance) will be kept intact when cleared.</span>
+            </template>
+            <template v-else>
+              Demo data is cleared! Currently displaying only your <strong>{{ realAssetCount }} verified holdings</strong>.
+            </template>
+          </div>
+        </div>
+
+        <div class="status-right">
+          <button
+            v-if="hasDemoData"
+            class="btn btn-clear-demo"
+            @click="handleClearDemo"
+          >
+            <Trash2 :size="15" />
+            <span>Clear Demo Data</span>
+          </button>
+          <button
+            v-else
+            class="btn btn-secondary"
+            @click="handleRestoreDemo"
+          >
+            <Undo2 :size="15" />
+            <span>Restore Demo Data</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="data-actions-grid">
+        <div class="data-action-item">
+          <div class="item-title">Clear All Positions</div>
+          <div class="item-desc">Wipes all current holdings to 0 CHF for a completely clean slate.</div>
+          <button class="btn btn-secondary btn-sm clear-btn" @click="handleClearAll">
+            <Trash2 :size="14" />
+            <span>Clear All (0 CHF)</span>
+          </button>
+        </div>
+
+        <div class="data-action-item">
+          <div class="item-title">Reset to Default Template</div>
+          <div class="item-desc">Restores the default starting template with both demo and verified samples.</div>
+          <button class="btn btn-secondary btn-sm reset-btn" @click="handleReset">
+            <RotateCcw :size="14" />
+            <span>Reset to Default</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Backup & Restore Card -->
     <div class="settings-card glass-card">
       <div class="card-title-row">
@@ -143,16 +233,6 @@ function handleClearAll() {
           class="hidden-input"
           @change="handleFileRestore"
         />
-
-        <button class="btn btn-secondary reset-btn" @click="handleReset">
-          <RotateCcw :size="16" />
-          <span>Reset to Demo Data</span>
-        </button>
-
-        <button class="btn btn-secondary clear-btn" @click="handleClearAll">
-          <Trash2 :size="16" />
-          <span>Clear All Positions (Start Fresh)</span>
-        </button>
       </div>
 
       <div v-if="restoreStatus" class="restore-alert">
@@ -320,6 +400,132 @@ function handleClearAll() {
 
 .reset-btn:hover {
   background: rgba(244, 63, 94, 0.15);
+}
+
+.text-accent {
+  color: #F8D030;
+}
+
+.demo-status-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  flex-wrap: wrap;
+}
+
+.demo-status-box.status-demo {
+  background: rgba(248, 208, 48, 0.07);
+  border-color: rgba(248, 208, 48, 0.35);
+}
+
+.demo-status-box.status-clean {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.status-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.status-indicator-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.status-demo .status-indicator-badge {
+  background: rgba(248, 208, 48, 0.2);
+  color: #F8D030;
+  border: 1px solid rgba(248, 208, 48, 0.4);
+}
+
+.status-clean .status-indicator-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--profit);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.status-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.status-sub {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.btn-clear-demo {
+  background: linear-gradient(135deg, #F8D030 0%, #eab308 100%);
+  color: #0b0f19;
+  font-weight: 700;
+  font-size: 0.84rem;
+  border: none;
+  box-shadow: 0 0 16px rgba(248, 208, 48, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-clear-demo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 22px rgba(248, 208, 48, 0.5);
+}
+
+.data-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.data-action-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.item-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  align-self: flex-start;
 }
 
 .restore-alert {

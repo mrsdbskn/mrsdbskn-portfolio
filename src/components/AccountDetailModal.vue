@@ -32,6 +32,7 @@ const {
   accountStats,
   formatMoney,
   deleteAsset,
+  clearDemoPositions,
 } = usePortfolio();
 
 const activeVaultTab = ref<'holdings' | 'transactions'>('holdings');
@@ -156,10 +157,21 @@ watch(() => props.isOpen, (open) => {
       <div v-if="activeVaultTab === 'holdings'" class="holdings-section">
         <div class="holdings-header">
           <h4 class="holdings-title">Positions in this Vault ({{ accountAssets.length }})</h4>
-          <button class="btn btn-secondary add-btn-sm" @click="emit('add-asset', currentAccount.id)">
-            <Plus :size="14" />
-            <span>Add Position</span>
-          </button>
+          <div class="header-action-group">
+            <button
+              v-if="(currentAccount.id === 'tangem' || currentAccount.id === 'metamask') && accountAssets.length > 0"
+              class="btn btn-secondary clear-demo-sm"
+              @click="clearDemoPositions"
+              title="Remove sample demo assets from this vault"
+            >
+              <Trash2 :size="13" />
+              <span>Clear Demo</span>
+            </button>
+            <button class="btn btn-secondary add-btn-sm" @click="emit('add-asset', currentAccount.id)">
+              <Plus :size="14" />
+              <span>Add Position</span>
+            </button>
+          </div>
         </div>
 
         <div class="holdings-list">
@@ -435,6 +447,26 @@ watch(() => props.isOpen, (open) => {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clear-demo-sm {
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  color: #F8D030;
+  border-color: rgba(248, 208, 48, 0.35);
+  background: rgba(248, 208, 48, 0.08);
+}
+
+.clear-demo-sm:hover {
+  background: rgba(248, 208, 48, 0.18);
+  border-color: #F8D030;
+  color: #ffffff;
 }
 
 .add-btn-sm {

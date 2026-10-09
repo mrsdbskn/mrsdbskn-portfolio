@@ -64,10 +64,11 @@ export const INITIAL_ACCOUNTS: Account[] = [
 ];
 
 export const INITIAL_ASSETS: Asset[] = [
-  // --- TANGEM (COLD STORAGE) ---
+  // --- TANGEM (COLD STORAGE - DEMO) ---
   {
     id: 't-btc',
     accountId: 'tangem',
+    isDemo: true,
     symbol: 'BTC',
     name: 'Bitcoin',
     category: 'crypto_cold',
@@ -77,11 +78,12 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 64150,
     price24hChange: 1.85,
     sparkline: [62800, 63100, 62900, 63500, 63800, 64000, 64150],
-    notes: 'Tangem Card 1 - Cold Vault',
+    notes: 'Tangem Card 1 - Cold Vault (Sample Demo)',
   },
   {
     id: 't-eth',
     accountId: 'tangem',
+    isDemo: true,
     symbol: 'ETH',
     name: 'Ethereum',
     category: 'crypto_cold',
@@ -91,11 +93,12 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 2890,
     price24hChange: 2.40,
     sparkline: [2780, 2810, 2800, 2840, 2860, 2870, 2890],
-    notes: 'Tangem Card 1',
+    notes: 'Tangem Card 1 (Sample Demo)',
   },
   {
     id: 't-sol',
     accountId: 'tangem',
+    isDemo: true,
     symbol: 'SOL',
     name: 'Solana',
     category: 'crypto_cold',
@@ -105,13 +108,14 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 148.50,
     price24hChange: -0.65,
     sparkline: [152, 150, 147, 149, 151, 149, 148.5],
-    notes: 'Cold staking wallet',
+    notes: 'Cold staking wallet (Sample Demo)',
   },
 
-  // --- METAMASK (WEB3 HOT) ---
+  // --- METAMASK (WEB3 HOT - DEMO) ---
   {
     id: 'mm-eth',
     accountId: 'metamask',
+    isDemo: true,
     symbol: 'ETH',
     name: 'Ethereum (Liquid)',
     category: 'crypto_hot',
@@ -121,11 +125,12 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 2890,
     price24hChange: 2.40,
     sparkline: [2780, 2810, 2800, 2840, 2860, 2870, 2890],
-    notes: 'Mainnet gas & DeFi buffer',
+    notes: 'Mainnet gas & DeFi buffer (Sample Demo)',
   },
   {
     id: 'mm-arb',
     accountId: 'metamask',
+    isDemo: true,
     symbol: 'ARB',
     name: 'Arbitrum',
     category: 'crypto_hot',
@@ -135,11 +140,12 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 0.62,
     price24hChange: -1.20,
     sparkline: [0.65, 0.64, 0.63, 0.61, 0.62, 0.61, 0.62],
-    notes: 'Arbitrum One Layer 2',
+    notes: 'Arbitrum One Layer 2 (Sample Demo)',
   },
   {
     id: 'mm-link',
     accountId: 'metamask',
+    isDemo: true,
     symbol: 'LINK',
     name: 'Chainlink',
     category: 'crypto_hot',
@@ -149,11 +155,12 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 14.80,
     price24hChange: 3.10,
     sparkline: [14.1, 14.3, 14.2, 14.5, 14.6, 14.7, 14.8],
-    notes: 'Oracle infrastructure',
+    notes: 'Oracle infrastructure (Sample Demo)',
   },
   {
     id: 'mm-uni',
     accountId: 'metamask',
+    isDemo: true,
     symbol: 'UNI',
     name: 'Uniswap',
     category: 'crypto_hot',
@@ -163,7 +170,7 @@ export const INITIAL_ASSETS: Asset[] = [
     currentPrice: 7.90,
     price24hChange: 0.80,
     sparkline: [7.6, 7.7, 7.8, 7.6, 7.8, 7.9, 7.9],
-    notes: 'DEX protocol governance',
+    notes: 'DEX protocol governance (Sample Demo)',
   },
 
   // --- BINANCE (CEX) ---
