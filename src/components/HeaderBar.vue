@@ -109,12 +109,12 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
   height: 40px;
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 210, 255, 0.35);
+  border: 1px solid rgba(248, 208, 48, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 4px;
-  box-shadow: 0 0 16px rgba(0, 210, 255, 0.25);
+  box-shadow: 0 0 16px rgba(248, 208, 48, 0.25);
   overflow: hidden;
 }
 
@@ -122,7 +122,7 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.6));
+  filter: drop-shadow(0 0 5px rgba(248, 208, 48, 0.7));
 }
 
 .logo-text {
@@ -144,7 +144,7 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: var(--accent-cyan);
+  color: #F8D030;
 }
 
 .status-indicator {
@@ -199,9 +199,9 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
 }
 
 .currency-btn.active {
-  background: rgba(0, 210, 255, 0.18);
-  color: var(--accent-cyan);
-  box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+  background: rgba(248, 208, 48, 0.18);
+  color: #F8D030;
+  box-shadow: 0 0 10px rgba(248, 208, 48, 0.25);
 }
 
 .action-btn {

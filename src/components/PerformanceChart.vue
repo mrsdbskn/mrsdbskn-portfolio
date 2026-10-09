@@ -33,22 +33,22 @@ function initChart() {
 
   // Create gradient
   const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-  gradient.addColorStop(0, 'rgba(0, 210, 255, 0.35)');
-  gradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.15)');
+  gradient.addColorStop(0, 'rgba(248, 208, 48, 0.38)');
+  gradient.addColorStop(0.5, 'rgba(248, 208, 48, 0.10)');
   gradient.addColorStop(1, 'rgba(10, 14, 23, 0.0)');
 
   const datasets: any[] = [
     {
       label: 'Net Worth',
       data: values,
-      borderColor: '#00d2ff',
+      borderColor: '#F8D030',
       borderWidth: 2.5,
       backgroundColor: gradient,
       fill: true,
       tension: 0.35,
       pointRadius: values.length > 10 ? 0 : 3.5,
       pointHoverRadius: 6,
-      pointBackgroundColor: '#00d2ff',
+      pointBackgroundColor: '#F8D030',
       pointBorderColor: '#ffffff',
       pointBorderWidth: 2,
     },

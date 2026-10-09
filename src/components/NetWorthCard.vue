@@ -137,7 +137,7 @@ const topPerformer = computed(() => topGainers.value[0]);
 }
 
 .glow-profit {
-  background: radial-gradient(circle, #10b981 0%, rgba(0, 210, 255, 0.3) 100%);
+  background: radial-gradient(circle, #10b981 0%, rgba(248, 208, 48, 0.3) 100%);
 }
 
 .glow-loss {
@@ -166,9 +166,9 @@ const topPerformer = computed(() => topGainers.value[0]);
   gap: 6px;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--accent-cyan);
-  background: rgba(0, 210, 255, 0.1);
-  border: 1px solid rgba(0, 210, 255, 0.25);
+  color: #F8D030;
+  background: rgba(248, 208, 48, 0.1);
+  border: 1px solid rgba(248, 208, 48, 0.28);
   padding: 4px 12px;
   border-radius: var(--radius-full);
   letter-spacing: 0.08em;

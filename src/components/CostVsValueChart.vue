@@ -48,8 +48,8 @@ function initChart() {
         {
           label: 'Current Market Value',
           data: valueData,
-          backgroundColor: '#00d2ff',
-          hoverBackgroundColor: '#38bdf8',
+          backgroundColor: '#F8D030',
+          hoverBackgroundColor: '#fde047',
           borderRadius: 6,
           barPercentage: 0.7,
           categoryPercentage: 0.75,
