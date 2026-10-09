@@ -133,6 +133,21 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await expect(page.locator('.tx-sum-val:has-text("308.8 FG.g")')).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, '11-modal-ubs-gold-tranches.png') });
     await page.locator('.close-btn').click();
+
+    // 5. Open Neon Invest vault details & verify Coinbase position and trade ledger
+    await page.locator('.account-card:has-text("Neon Invest")').click();
+    await expect(page.locator('.vault-title')).toHaveText('Neon Invest');
+    await expect(page.locator('.holding-card:has-text("COIN")')).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotsDir, '12-modal-neon-vault.png') });
+
+    // Switch to Neon 'Order Tranches' subtab
+    const neonTranchesTab = page.locator('button.subtab-btn:has-text("Order Tranches")');
+    await expect(neonTranchesTab).toBeVisible();
+    await neonTranchesTab.click();
+    await expect(page.locator('.tx-card:has-text("Coinbase")').first()).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotsDir, '13-modal-neon-tranches.png') });
+    await page.locator('.close-btn').click();
   });
 });
+
 

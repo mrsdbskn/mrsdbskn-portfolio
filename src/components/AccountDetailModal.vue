@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
 import type { AccountType, Asset } from '../types/portfolio';
 import VaultLogo from './VaultLogo.vue';
@@ -11,6 +11,7 @@ import {
   Layers,
   History,
   CheckCircle2,
+  ArrowUpRight,
 } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -53,6 +54,12 @@ const accountAssets = computed(() => {
 const accountTransactions = computed(() => {
   if (!props.accountId) return [];
   return transactions.value.filter(t => t.accountId === props.accountId);
+});
+
+watch(() => props.isOpen, (open) => {
+  if (open) {
+    activeVaultTab.value = 'holdings';
+  }
 });
 </script>
 
@@ -197,19 +204,29 @@ const accountTransactions = computed(() => {
       <div v-else class="transactions-section">
         <div class="tx-summary-banner glass-card">
           <div class="tx-sum-item">
-            <span class="tx-sum-label">Tranches</span>
-            <span class="tx-sum-val font-mono">{{ accountTransactions.length }} Buys</span>
+            <span class="tx-sum-label">Orders Logged</span>
+            <span class="tx-sum-val font-mono">{{ accountTransactions.length }} Orders</span>
           </div>
           <div class="tx-sum-item">
-            <span class="tx-sum-label">Total Gold Acquired</span>
+            <span class="tx-sum-label">{{ currentAccount.id === 'ubs' ? 'Total Gold Acquired' : 'Total Executed Units' }}</span>
             <span class="tx-sum-val font-mono text-accent">
-              {{ accountTransactions.reduce((acc, t) => acc + t.quantity, 0).toFixed(1) }} FG.g
+              <template v-if="currentAccount.id === 'ubs'">
+                {{ accountTransactions.reduce((acc, t) => acc + (t.type === 'BUY' ? t.quantity : 0), 0).toFixed(1) }} FG.g
+              </template>
+              <template v-else>
+                {{ accountTransactions.reduce((acc, t) => acc + t.quantity, 0) }} units
+              </template>
             </span>
           </div>
           <div class="tx-sum-item">
-            <span class="tx-sum-label">Weighted Avg Execution</span>
+            <span class="tx-sum-label">{{ currentAccount.id === 'ubs' ? 'Weighted Avg Execution' : 'Total Traded Flow' }}</span>
             <span class="tx-sum-val font-mono">
-              CHF {{ (accountTransactions.reduce((acc, t) => acc + t.totalValue, 0) / (accountTransactions.reduce((acc, t) => acc + t.quantity, 0) || 1)).toFixed(2) }} / g
+              <template v-if="currentAccount.id === 'ubs'">
+                CHF {{ (accountTransactions.reduce((acc, t) => acc + t.totalValue, 0) / (accountTransactions.reduce((acc, t) => acc + t.quantity, 0) || 1)).toFixed(2) }} / g
+              </template>
+              <template v-else>
+                {{ formatMoney(accountTransactions.reduce((acc, t) => acc + t.totalValue, 0)) }}
+              </template>
             </span>
           </div>
         </div>
@@ -218,14 +235,15 @@ const accountTransactions = computed(() => {
           <div v-for="tx in accountTransactions" :key="tx.id" class="tx-card">
             <div class="tx-top">
               <div class="tx-badge-group">
-                <span class="badge-buy">
-                  <CheckCircle2 :size="11" />
+                <span :class="tx.type === 'BUY' ? 'badge-buy' : 'badge-sell'">
+                  <CheckCircle2 v-if="tx.type === 'BUY'" :size="11" />
+                  <ArrowUpRight v-else :size="11" />
                   <span>{{ tx.type }}</span>
                 </span>
                 <span class="tx-date font-mono">{{ tx.date }} <span v-if="tx.time" class="tx-time">{{ tx.time }}</span></span>
               </div>
-              <div class="tx-total font-mono">
-                {{ formatMoney(tx.totalValue) }}
+              <div class="tx-total font-mono" :class="tx.type === 'BUY' ? '' : 'text-profit'">
+                {{ tx.type === 'SELL' ? '+' : '' }}{{ formatMoney(tx.totalValue) }}
               </div>
             </div>
 
@@ -625,6 +643,20 @@ const accountTransactions = computed(() => {
   font-size: 0.68rem;
   font-weight: 700;
 }
+
+.badge-sell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 
 .tx-date {
   font-size: 0.75rem;

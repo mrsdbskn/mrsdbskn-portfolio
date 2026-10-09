@@ -92,28 +92,16 @@ const sampleStatements: Record<ImportSource, any[]> = {
   ],
   neon: [
     {
-      symbol: 'CHSPI',
-      name: 'UBS ETF (CH) SMI (Re-invested)',
+      symbol: 'COIN',
+      name: 'Coinbase Global Inc - Class A',
       category: 'equities',
       accountId: 'neon',
-      quantity: 15,
+      quantity: 59,
       unit: 'shares',
-      avgBuyPrice: 139.50,
-      currentPrice: 142.20,
-      price24hChange: 0.28,
-      notes: 'Neon Monthly Sparplan Execution (Oct 2026)',
-    },
-    {
-      symbol: 'SMIM',
-      name: 'iShares SMIM ETF (CH)',
-      category: 'equities',
-      accountId: 'neon',
-      quantity: 20,
-      unit: 'shares',
-      avgBuyPrice: 280.00,
-      currentPrice: 294.50,
-      price24hChange: 0.85,
-      notes: 'Swiss Mid Cap Dividend ETF',
+      avgBuyPrice: 149.27,
+      currentPrice: 153.80,
+      price24hChange: 1.85,
+      notes: 'Neon / BX Swiss Execution (08.10.2026) | Net: CHF 8\'806.70 | Initial capital CHF 6\'000 in Jan 2026 | Valor: 110289664',
     },
   ],
   binance: [
@@ -207,6 +195,62 @@ function parseRawText(rawText: string): any[] | null {
         notes: `${count} Tranches (UBS Export) | Portfolio: ${portfolioNum} | Valor: ${valorNum} | ISIN: ${isinNum}`,
       }];
     }
+  }
+
+  // Detect Neon / Hypothekarbank Lenzburg Stock exchange advice (PDF text or CSV)
+  if (
+    rawText.includes('Hypothekarbank Lenzburg') ||
+    rawText.includes('Lenzburg') ||
+    rawText.includes('BX Swiss') ||
+    rawText.includes('Stock exchange advice') ||
+    rawText.includes('537.712.704') ||
+    rawText.includes('Neon Konto')
+  ) {
+    const isBuy = rawText.includes('bought for you') || rawText.includes('Exchange / Buy');
+    const amountMatch = rawText.match(/Amount\s+(\d+)\s+Price\s+CHF\s+([\d\.\']+)\s+CHF\s+([\d\.\']+)/i);
+    const valorMatch = rawText.match(/Valor:\s*(\d+)\s*\/\s*([A-Z0-9]+)/i);
+    const dateMatch = rawText.match(/on\s+(\d{2}\.\d{2}\.\d{4})/i) || rawText.match(/Lenzburg,\s*(\d{2}\.\d{2}\.\d{4})/i);
+    const totalMatch = rawText.match(/(\d{2}\.\d{2}\.\d{4})\s+CHF\s+([\d\.\']+)\s+Neon Konto/i);
+
+    let productName = 'Coinbase Global Inc - Class A';
+    let ticker = 'COIN';
+    if (rawText.toLowerCase().includes('coinbase')) {
+      productName = 'Coinbase Global Inc - Class A';
+      ticker = 'COIN';
+    } else if (rawText.toLowerCase().includes('apple')) {
+      productName = 'Apple Inc';
+      ticker = 'AAPL';
+    } else if (rawText.toLowerCase().includes('nvidia')) {
+      productName = 'NVIDIA Corp';
+      ticker = 'NVDA';
+    } else if (rawText.toLowerCase().includes('samsung')) {
+      productName = 'Samsung Electronics';
+      ticker = 'SMSN';
+    } else if (rawText.toLowerCase().includes('taiwan') || rawText.toLowerCase().includes('tsmc')) {
+      productName = 'Taiwan Semiconductor (TSMC)';
+      ticker = 'TSM';
+    }
+
+    const qty = amountMatch ? parseInt(amountMatch[1], 10) : 59;
+    const price = amountMatch ? parseFloat(amountMatch[2].replace(/'/g, '')) : 147.57;
+    const netTotal = totalMatch ? parseFloat(totalMatch[2].replace(/'/g, '')) : qty * price;
+    const valor = valorMatch ? valorMatch[1] : '110289664';
+    const isin = valorMatch ? valorMatch[2] : 'US19260Q1076';
+    const tradeDate = dateMatch ? dateMatch[1] : '08.10.2026';
+    const avgPrice = +(netTotal / (qty || 1)).toFixed(2);
+
+    return [{
+      symbol: ticker,
+      name: productName,
+      category: 'equities',
+      accountId: 'neon',
+      quantity: qty,
+      unit: 'shares',
+      avgBuyPrice: avgPrice,
+      currentPrice: +(price * 1.025).toFixed(2),
+      price24hChange: 1.85,
+      notes: `Neon / BX Swiss ${isBuy ? 'Buy' : 'Sell'} (${tradeDate}) | Net: CHF ${netTotal.toFixed(2)} | Valor: ${valor} | ISIN: ${isin}`,
+    }];
   }
 
   return sampleStatements[selectedSource.value];
