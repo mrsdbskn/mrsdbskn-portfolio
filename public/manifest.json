@@ -1,16 +1,26 @@
 {
-  "name": "Aura Multi-Asset Portfolio",
-  "short_name": "Aura Portfolio",
-  "description": "Unified tracker for Tangem, MetaMask, Binance, UBS Gold, and Neon Shares",
+  "name": "mrsdbskn-portfolio",
+  "short_name": "mrsdbskn",
+  "description": "Multi-Asset Wealth & Vault Tracker for Tangem, MetaMask, Binance, UBS Gold, and Neon",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0a0d14",
-  "theme_color": "#0a0d14",
+  "background_color": "#06080d",
+  "theme_color": "#06080d",
   "icons": [
     {
-      "src": "./favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
     }
   ]
 }

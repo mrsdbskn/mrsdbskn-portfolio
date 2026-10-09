@@ -16,8 +16,9 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await page.goto('/');
 
     // 1. Check title & header
-    await expect(page).toHaveTitle(/Aura Portfolio/i);
-    await expect(page.locator('.logo-title')).toHaveText('AURA');
+    await expect(page).toHaveTitle(/mrsdbskn-portfolio/i);
+    await expect(page.locator('.logo-title')).toHaveText('mrsdbskn');
+    await expect(page.locator('.logo-image')).toBeVisible();
 
     // 2. Verify Net Worth card loaded
     const mainNumber = page.locator('.main-number');

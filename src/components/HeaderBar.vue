@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { usePortfolio } from '../composables/usePortfolio';
 import type { Currency } from '../types/portfolio';
-import { Eye, EyeOff, RefreshCw, Sparkles } from 'lucide-vue-next';
+import { Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
+import logoImg from '../assets/logo.png';
 
 const {
   currency,
@@ -21,11 +22,11 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
       <div class="logo-badge">
         <div class="logo-glow"></div>
         <div class="logo-icon">
-          <Sparkles class="icon-sparkle" :size="18" />
+          <img :src="logoImg" alt="mrsdbskn logo" class="logo-image" />
         </div>
         <div class="logo-text">
-          <div class="logo-title">AURA</div>
-          <div class="logo-subtitle">WEALTH ENGINE</div>
+          <div class="logo-title">mrsdbskn</div>
+          <div class="logo-subtitle">PORTFOLIO</div>
         </div>
       </div>
       <div class="status-indicator">
@@ -104,15 +105,24 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
 }
 
 .logo-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 50%, #6366f1 100%);
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 210, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #060912;
-  box-shadow: 0 0 16px rgba(0, 210, 255, 0.4);
+  padding: 4px;
+  box-shadow: 0 0 16px rgba(0, 210, 255, 0.25);
+  overflow: hidden;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.6));
 }
 
 .logo-text {
@@ -123,8 +133,8 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
 .logo-title {
   font-size: 1.15rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  background: linear-gradient(120deg, #ffffff 0%, #94a3b8 100%);
+  letter-spacing: 0.06em;
+  background: linear-gradient(120deg, #ffffff 0%, #cbd5e1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1.1;
@@ -133,7 +143,7 @@ const currencies: Currency[] = ['CHF', 'USD', 'EUR'];
 .logo-subtitle {
   font-size: 0.58rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.2em;
   color: var(--accent-cyan);
 }
 

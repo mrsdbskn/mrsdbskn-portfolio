@@ -1,6 +1,6 @@
-# Aura Multi-Asset Portfolio 💎
+# mrsdbskn-portfolio 💎
 
-A modern, fluid personal wealth and net worth dashboard built with **Vue 3**, **TypeScript**, and **Chart.js**. Designed for mobile-first OLED devices (like Google Pixel 10 XL) and ready for zero-cost deployment on **GitHub Pages**.
+A modern, fluid personal wealth and multi-vault net worth dashboard built with **Vue 3**, **TypeScript**, and **Chart.js**. Designed for mobile-first OLED devices (like Google Pixel 10 XL) and ready for zero-cost deployment on **GitHub Pages**.
 
 ---
 
