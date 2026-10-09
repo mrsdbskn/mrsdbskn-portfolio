@@ -27,7 +27,7 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     expect(netWorthText).toContain('CHF');
 
     // 3. Verify all 5 accounts in the grid
-    const accountNames = ['Tangem Wallet', 'MetaMask Wallet', 'Binance Global', 'UBS Safe & Metals', 'Neon Invest'];
+    const accountNames = ['Tangem Wallet', 'MetaMask Wallet', 'Binance Global', 'UBS key4 gold', 'Neon Invest'];
     for (const name of accountNames) {
       await expect(page.locator(`.account-name:has-text("${name}")`)).toBeVisible();
     }
@@ -118,5 +118,21 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await expect(page.locator('.vault-title')).toHaveText('Tangem Wallet');
     await page.screenshot({ path: path.join(screenshotsDir, '09-modal-tangem-vault-detail.png') });
     await page.locator('.close-btn').click();
+
+    // 4. Open UBS key4 gold vault details & verify order tranches ledger
+    await page.locator('.account-card:has-text("UBS key4 gold")').click();
+    await expect(page.locator('.vault-title')).toHaveText('UBS key4 gold');
+    await expect(page.locator('.stat-number').first()).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotsDir, '10-modal-ubs-gold-vault.png') });
+
+    // Switch to 'Order Tranches' subtab
+    const tranchesTab = page.locator('button.subtab-btn:has-text("Order Tranches")');
+    await expect(tranchesTab).toBeVisible();
+    await tranchesTab.click();
+    await expect(page.locator('.tx-card')).toHaveCount(7);
+    await expect(page.locator('.tx-sum-val:has-text("308.8 FG.g")')).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotsDir, '11-modal-ubs-gold-tranches.png') });
+    await page.locator('.close-btn').click();
   });
 });
+

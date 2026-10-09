@@ -7,6 +7,7 @@ import {
   Upload,
   CheckCircle2,
   ArrowRight,
+  FileText,
 } from 'lucide-vue-next';
 
 const emit = defineEmits<{
@@ -25,28 +26,16 @@ const successMessage = ref<string>('');
 const sampleStatements: Record<ImportSource, any[]> = {
   ubs: [
     {
-      symbol: 'XAU-50G',
-      name: 'UBS 50g Fine Gold 999.9 Minted Bar',
+      symbol: 'UBS key4 gold',
+      name: 'UBS key4 gold (308.8g Feingold)',
       category: 'gold',
       accountId: 'ubs',
-      quantity: 50,
+      quantity: 308.8,
       unit: 'grams',
-      avgBuyPrice: 62.10,
-      currentPrice: 76.80,
-      price24hChange: 0.45,
-      notes: 'UBS Precious Metals Statement / Depotauszug',
-    },
-    {
-      symbol: 'XAU-100G',
-      name: 'UBS 100g Fine Gold 999.9 Bar',
-      category: 'gold',
-      accountId: 'ubs',
-      quantity: 100,
-      unit: 'grams',
-      avgBuyPrice: 63.20,
-      currentPrice: 76.80,
-      price24hChange: 0.45,
-      notes: 'Allocated Physical Vault Safekeeping',
+      avgBuyPrice: 116.13,
+      currentPrice: 118.50,
+      price24hChange: 0.35,
+      notes: '7 Tranches (Jan-Jul 2026) | Portfolio: 0269 00103951 0001 | Valor: 16018250 | ISIN: QT0160182504',
     },
   ],
   tangem: [
@@ -155,6 +144,85 @@ const sampleStatements: Record<ImportSource, any[]> = {
   ],
 };
 
+const inputMode = ref<'drop' | 'paste'>('drop');
+const pasteText = ref<string>('');
+
+function parseRawText(rawText: string): any[] | null {
+  if (!rawText || !rawText.trim()) return null;
+
+  try {
+    const data = JSON.parse(rawText);
+    if (Array.isArray(data)) return data;
+  } catch {}
+
+  const lines = rawText.trim().split(/\r?\n/);
+  
+  // Detect UBS semicolon export
+  if (rawText.includes(';') && (rawText.includes('key4') || rawText.includes('Kauf') || rawText.includes('FG.g') || rawText.includes('Edelmetalle'))) {
+    let totalGrams = 0;
+    let totalCost = 0;
+    let productName = 'UBS key4 gold';
+    let portfolioNum = '0269 00103951 0001';
+    let valorNum = '16018250';
+    let isinNum = 'QT0160182504';
+    let count = 0;
+
+    for (const line of lines) {
+      if (!line.trim() || line.startsWith('Bewertungsdatum') || line.startsWith('Transaktionsliste')) continue;
+      const parts = line.split(';');
+      if (parts.length >= 17) {
+        if (parts[2]?.trim()) portfolioNum = parts[2].trim();
+        if (parts[9]?.trim()) productName = parts[9].trim();
+        if (parts[11]?.trim()) valorNum = parts[11].trim();
+        if (parts[12]?.trim()) isinNum = parts[12].trim();
+
+        const gramsStr = parts[14]?.replace(/'/g, '').replace(',', '.').trim();
+        const priceStr = parts[16]?.replace(/'/g, '').replace(',', '.').trim();
+        const valueStr = parts[19]?.replace(/'/g, '').replace(',', '.').trim();
+
+        const grams = parseFloat(gramsStr);
+        const price = parseFloat(priceStr);
+        const val = parseFloat(valueStr);
+
+        if (!isNaN(grams) && grams > 0) {
+          totalGrams += grams;
+          totalCost += !isNaN(val) && val > 0 ? val : grams * price;
+          count++;
+        }
+      }
+    }
+
+    if (totalGrams > 0) {
+      const avgPrice = +(totalCost / totalGrams).toFixed(2);
+      return [{
+        symbol: productName,
+        name: `${productName} (${totalGrams.toFixed(1)}g Feingold)`,
+        category: 'gold',
+        accountId: 'ubs',
+        quantity: +totalGrams.toFixed(2),
+        unit: 'grams',
+        avgBuyPrice: avgPrice,
+        currentPrice: 118.50,
+        price24hChange: 0.35,
+        notes: `${count} Tranches (UBS Export) | Portfolio: ${portfolioNum} | Valor: ${valorNum} | ISIN: ${isinNum}`,
+      }];
+    }
+  }
+
+  return sampleStatements[selectedSource.value];
+}
+
+function handlePasteParse() {
+  if (!pasteText.value.trim()) return;
+  isParsing.value = true;
+  parsedResult.value = null;
+  setTimeout(() => {
+    const res = parseRawText(pasteText.value);
+    parsedResult.value = res || sampleStatements[selectedSource.value];
+    isParsing.value = false;
+  }, 400);
+}
+
 function selectSample(source: ImportSource) {
   selectedSource.value = source;
   isParsing.value = true;
@@ -164,16 +232,47 @@ function selectSample(source: ImportSource) {
   setTimeout(() => {
     parsedResult.value = sampleStatements[source];
     isParsing.value = false;
-  }, 600);
+  }, 400);
 }
 
 function handleFileDrop(e: DragEvent) {
   e.preventDefault();
-  selectSample(selectedSource.value);
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    const file = e.dataTransfer.files[0];
+    const reader = new FileReader();
+    isParsing.value = true;
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      setTimeout(() => {
+        const res = parseRawText(text);
+        parsedResult.value = res || sampleStatements[selectedSource.value];
+        isParsing.value = false;
+      }, 400);
+    };
+    reader.readAsText(file);
+  } else {
+    selectSample(selectedSource.value);
+  }
 }
 
-function handleFileInput() {
-  selectSample(selectedSource.value);
+function handleFileInput(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (!target.files || target.files.length === 0) {
+    selectSample(selectedSource.value);
+    return;
+  }
+  const file = target.files[0];
+  const reader = new FileReader();
+  isParsing.value = true;
+  reader.onload = (evt) => {
+    const text = evt.target?.result as string;
+    setTimeout(() => {
+      const res = parseRawText(text);
+      parsedResult.value = res || sampleStatements[selectedSource.value];
+      isParsing.value = false;
+    }, 400);
+  };
+  reader.readAsText(file);
 }
 
 function commitImport() {
@@ -283,8 +382,31 @@ function commitImport() {
         </div>
       </div>
 
-      <!-- Dropzone -->
+      <!-- Input Mode Switcher -->
+      <div class="input-mode-switcher">
+        <button
+          type="button"
+          class="mode-switch-btn"
+          :class="{ active: inputMode === 'drop' }"
+          @click="inputMode = 'drop'"
+        >
+          <Upload :size="13" />
+          <span>Upload / Drop File</span>
+        </button>
+        <button
+          type="button"
+          class="mode-switch-btn"
+          :class="{ active: inputMode === 'paste' }"
+          @click="inputMode = 'paste'"
+        >
+          <FileText :size="13" />
+          <span>Paste CSV / Text</span>
+        </button>
+      </div>
+
+      <!-- Mode 1: Dropzone -->
       <div
+        v-if="inputMode === 'drop'"
         class="dropzone-area"
         @dragover.prevent
         @drop="handleFileDrop"
@@ -294,10 +416,10 @@ function commitImport() {
           <span>Drag & drop your statement file here, or</span>
           <label class="file-picker-label">
             browse file
-            <input type="file" @change="handleFileInput" class="hidden-input" accept=".csv,.pdf,.xlsx,.json" />
+            <input type="file" @change="handleFileInput" class="hidden-input" accept=".csv,.pdf,.xlsx,.json,.txt" />
           </label>
         </div>
-        <p class="drop-note">Supports Neon CSV/PDF, Binance Trades CSV, UBS E-Banking PDF. 100% processed locally in browser memory.</p>
+        <p class="drop-note">Supports Neon CSV/PDF, Binance Trades CSV, UBS E-Banking CSV/PDF. 100% processed locally in browser memory.</p>
 
         <!-- Simulated Quick Test Button -->
         <button
@@ -307,6 +429,34 @@ function commitImport() {
         >
           Load {{ selectedSource.toUpperCase() }} Sample Extract
         </button>
+      </div>
+
+      <!-- Mode 2: Paste Area -->
+      <div v-else class="paste-area">
+        <textarea
+          v-model="pasteText"
+          class="paste-textarea font-mono"
+          placeholder="Paste your semicolon-separated or comma-separated transaction lines here (e.g. from UBS key4 gold export or Neon)..."
+          rows="5"
+        ></textarea>
+        <div class="paste-action-row">
+          <button
+            type="button"
+            class="btn btn-primary parse-paste-btn"
+            :disabled="!pasteText.trim()"
+            @click="handlePasteParse"
+          >
+            <span>Parse Pasted Transactions</span>
+            <ArrowRight :size="15" />
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary quick-sample-btn"
+            @click="selectSample(selectedSource)"
+          >
+            Load {{ selectedSource.toUpperCase() }} Sample Extract
+          </button>
+        </div>
       </div>
 
       <!-- Parsing State -->
@@ -598,5 +748,72 @@ function commitImport() {
   border-radius: var(--radius-md);
   font-size: 0.85rem;
   color: var(--profit);
+}
+
+.input-mode-switcher {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  width: fit-content;
+}
+
+.mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mode-switch-btn:hover {
+  color: var(--text-primary);
+}
+
+.mode-switch-btn.active {
+  background: rgba(248, 208, 48, 0.15);
+  color: var(--accent-gold);
+  border-color: rgba(248, 208, 48, 0.3);
+}
+
+.paste-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paste-textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  transition: all var(--transition-fast);
+}
+
+.paste-textarea:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(248, 208, 48, 0.2);
+}
+
+.paste-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 </style>

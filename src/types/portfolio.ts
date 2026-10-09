@@ -30,7 +30,7 @@ export interface Account {
   color: string;
   connectedAddress?: string;
   lastSync: string;
-  syncType: 'Auto RPC' | 'Manual' | 'CSV / PDF Import' | 'Live Metals Feed';
+  syncType: 'Auto RPC' | 'Manual' | 'CSV / PDF Import' | 'Live Metals Feed' | 'Direct Metals Depot';
   description: string;
 }
 
@@ -49,3 +49,25 @@ export interface PortfolioSummary {
   total24hChangeAmount: number;
   total24hChangePercent: number;
 }
+
+export interface Transaction {
+  id: string;
+  accountId: AccountType;
+  date: string;
+  time?: string;
+  bookingDate?: string;
+  valueDate?: string;
+  type: 'BUY' | 'SELL' | 'TRANSFER';
+  product: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalValue: number;
+  currency: string;
+  orderRef?: string;
+  externalRef?: string;
+  isin?: string;
+  valor?: string;
+  assetClass?: string;
+}
+

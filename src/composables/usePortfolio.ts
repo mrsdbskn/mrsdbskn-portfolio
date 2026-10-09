@@ -1,15 +1,17 @@
 import { ref, computed, watch } from 'vue';
-import type { Account, AccountType, Asset, Currency, PortfolioSummary, TimeRange } from '../types/portfolio';
-import { INITIAL_ACCOUNTS, INITIAL_ASSETS, PERFORMANCE_HISTORY } from '../data/mockData';
+import type { Account, AccountType, Asset, Currency, PortfolioSummary, TimeRange, Transaction } from '../types/portfolio';
+import { INITIAL_ACCOUNTS, INITIAL_ASSETS, INITIAL_TRANSACTIONS, PERFORMANCE_HISTORY } from '../data/mockData';
 
-const STORAGE_KEY_ASSETS = 'aura_portfolio_assets_v1';
-const STORAGE_KEY_ACCOUNTS = 'aura_portfolio_accounts_v1';
-const STORAGE_KEY_CURRENCY = 'aura_portfolio_currency_v1';
-const STORAGE_KEY_PRIVACY = 'aura_portfolio_privacy_v1';
+const STORAGE_KEY_ASSETS = 'mrsdbskn_portfolio_assets_v2';
+const STORAGE_KEY_ACCOUNTS = 'mrsdbskn_portfolio_accounts_v2';
+const STORAGE_KEY_CURRENCY = 'mrsdbskn_portfolio_currency_v2';
+const STORAGE_KEY_PRIVACY = 'mrsdbskn_portfolio_privacy_v2';
+const STORAGE_KEY_TRANSACTIONS = 'mrsdbskn_portfolio_transactions_v2';
 
 // Reactive State
 const accounts = ref<Account[]>(loadAccounts());
 const assets = ref<Asset[]>(loadAssets());
+const transactions = ref<Transaction[]>(loadTransactions());
 const currency = ref<Currency>((localStorage.getItem(STORAGE_KEY_CURRENCY) as Currency) || 'CHF');
 const isPrivacyMasked = ref<boolean>(localStorage.getItem(STORAGE_KEY_PRIVACY) === 'true');
 const selectedAccountId = ref<AccountType | 'all'>('all');
@@ -45,6 +47,16 @@ function loadAssets(): Asset[] {
   return INITIAL_ASSETS;
 }
 
+function loadTransactions(): Transaction[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to load transactions', e);
+  }
+  return INITIAL_TRANSACTIONS;
+}
+
 // Watchers for persistence
 watch(assets, (newVal) => {
   localStorage.setItem(STORAGE_KEY_ASSETS, JSON.stringify(newVal));
@@ -52,6 +64,10 @@ watch(assets, (newVal) => {
 
 watch(accounts, (newVal) => {
   localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(newVal));
+}, { deep: true });
+
+watch(transactions, (newVal) => {
+  localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(newVal));
 }, { deep: true });
 
 watch(currency, (newVal) => {
@@ -309,8 +325,10 @@ export function usePortfolio() {
   function resetToMockData() {
     assets.value = JSON.parse(JSON.stringify(INITIAL_ASSETS));
     accounts.value = JSON.parse(JSON.stringify(INITIAL_ACCOUNTS));
+    transactions.value = JSON.parse(JSON.stringify(INITIAL_TRANSACTIONS));
     localStorage.removeItem(STORAGE_KEY_ASSETS);
     localStorage.removeItem(STORAGE_KEY_ACCOUNTS);
+    localStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
   }
 
   function refreshData() {
@@ -345,6 +363,7 @@ export function usePortfolio() {
       currency: currency.value,
       accounts: accounts.value,
       assets: assets.value,
+      transactions: transactions.value,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -362,6 +381,9 @@ export function usePortfolio() {
       if (Array.isArray(data.assets) && Array.isArray(data.accounts)) {
         assets.value = data.assets;
         accounts.value = data.accounts;
+        if (Array.isArray(data.transactions)) {
+          transactions.value = data.transactions;
+        }
         if (data.currency) currency.value = data.currency;
         return true;
       }
@@ -371,9 +393,14 @@ export function usePortfolio() {
     return false;
   }
 
+  function addTransactions(newTxs: Transaction[]) {
+    transactions.value = [...newTxs, ...transactions.value];
+  }
+
   return {
     accounts,
     assets,
+    transactions,
     currency,
     currencySymbol,
     fxRates,
@@ -405,5 +432,6 @@ export function usePortfolio() {
     refreshData,
     exportBackup,
     importBackup,
+    addTransactions,
   };
 }
