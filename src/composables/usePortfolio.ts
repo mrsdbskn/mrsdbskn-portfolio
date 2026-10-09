@@ -2,11 +2,12 @@ import { ref, computed, watch } from 'vue';
 import type { Account, AccountType, Asset, Currency, PortfolioSummary, TimeRange, Transaction } from '../types/portfolio';
 import { INITIAL_ACCOUNTS, INITIAL_ASSETS, INITIAL_TRANSACTIONS, PERFORMANCE_HISTORY } from '../data/mockData';
 
-const STORAGE_KEY_ASSETS = 'mrsdbskn_portfolio_assets_v3';
-const STORAGE_KEY_ACCOUNTS = 'mrsdbskn_portfolio_accounts_v3';
-const STORAGE_KEY_CURRENCY = 'mrsdbskn_portfolio_currency_v3';
-const STORAGE_KEY_PRIVACY = 'mrsdbskn_portfolio_privacy_v3';
-const STORAGE_KEY_TRANSACTIONS = 'mrsdbskn_portfolio_transactions_v3';
+const STORAGE_KEY_ASSETS = 'mrsdbskn_portfolio_assets_v4';
+const STORAGE_KEY_ACCOUNTS = 'mrsdbskn_portfolio_accounts_v4';
+const STORAGE_KEY_CURRENCY = 'mrsdbskn_portfolio_currency_v4';
+const STORAGE_KEY_PRIVACY = 'mrsdbskn_portfolio_privacy_v4';
+const STORAGE_KEY_TRANSACTIONS = 'mrsdbskn_portfolio_transactions_v4';
+
 
 
 // Reactive State

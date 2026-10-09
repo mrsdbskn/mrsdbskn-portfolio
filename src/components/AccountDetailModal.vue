@@ -214,8 +214,9 @@ watch(() => props.isOpen, (open) => {
                 {{ accountTransactions.reduce((acc, t) => acc + (t.type === 'BUY' ? t.quantity : 0), 0).toFixed(1) }} FG.g
               </template>
               <template v-else>
-                {{ accountTransactions.reduce((acc, t) => acc + t.quantity, 0) }} units
+                {{ accountTransactions.reduce((acc, t) => acc + t.quantity, 0).toFixed(2) }} units
               </template>
+
             </span>
           </div>
           <div class="tx-sum-item">

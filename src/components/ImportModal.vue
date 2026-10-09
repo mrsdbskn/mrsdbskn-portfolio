@@ -106,31 +106,45 @@ const sampleStatements: Record<ImportSource, any[]> = {
   ],
   binance: [
     {
-      symbol: 'SOL',
-      name: 'Solana (Binance Spot)',
+      symbol: 'WBETH',
+      name: 'Wrapped Beacon ETH (Staked)',
       category: 'crypto_cex',
       accountId: 'binance',
-      quantity: 10,
-      unit: 'SOL',
-      avgBuyPrice: 135.00,
-      currentPrice: 148.50,
-      price24hChange: -0.65,
-      notes: 'Binance Trade Export (Q3 Execution)',
+      quantity: 17.286997,
+      unit: 'WBETH',
+      avgBuyPrice: 2417.65,
+      currentPrice: 2460.00,
+      price24hChange: 1.75,
+      notes: '17.287 WBETH on Binance Spot/Earn | Executed 08.10.2026 @ 2\'741.47 USDT | UID: 62633101',
     },
     {
       symbol: 'BNB',
-      name: 'BNB (Binance Ecosystem)',
+      name: 'BNB (Binance Coin)',
       category: 'crypto_cex',
       accountId: 'binance',
-      quantity: 5,
+      quantity: 64.571846,
       unit: 'BNB',
-      avgBuyPrice: 510.00,
-      currentPrice: 585.00,
-      price24hChange: 1.25,
-      notes: 'Binance Launchpool & Spot',
+      avgBuyPrice: 647.23,
+      currentPrice: 655.50,
+      price24hChange: 1.28,
+      notes: '64.572 BNB on Binance Spot/Launchpool | Executed 08.10.2026 @ 734.12 USDT | UID: 62633101',
+    },
+    {
+      symbol: 'USDC',
+      name: 'USD Coin',
+      category: 'crypto_cex',
+      accountId: 'binance',
+      quantity: 8.298657,
+      unit: 'USDC',
+      avgBuyPrice: 0.881,
+      currentPrice: 0.881,
+      price24hChange: 0.0,
+      notes: 'Referral commission & spot buffer | UID: 62633101',
     },
   ],
 };
+
+const uploadedFileNames = ref<string[]>([]);
 
 const inputMode = ref<'drop' | 'paste'>('drop');
 const pasteText = ref<string>('');
@@ -253,6 +267,82 @@ function parseRawText(rawText: string): any[] | null {
     }];
   }
 
+  // Detect Binance Transaction History CSV
+  if (
+    rawText.includes('User ID') &&
+    rawText.includes('Operation') &&
+    rawText.includes('Coin') &&
+    rawText.includes('Change')
+  ) {
+    const lines = rawText.trim().split(/\r?\n/);
+    const balances: Record<string, number> = {};
+    
+    // Parse CSV rows
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+      const parts = line.split(',');
+      if (parts.length >= 6) {
+        const coin = parts[4]?.trim();
+        const changeStr = parts[5]?.trim();
+        const change = parseFloat(changeStr);
+        if (coin && !isNaN(change)) {
+          balances[coin] = (balances[coin] || 0) + change;
+        }
+      }
+    }
+
+    const detected: any[] = [];
+    if (balances['WBETH'] && balances['WBETH'] > 0.0001) {
+      detected.push({
+        symbol: 'WBETH',
+        name: 'Wrapped Beacon ETH (Staked)',
+        category: 'crypto_cex',
+        accountId: 'binance',
+        quantity: +balances['WBETH'].toFixed(6),
+        unit: 'WBETH',
+        avgBuyPrice: 2417.65,
+        currentPrice: 2460.00,
+        price24hChange: 1.75,
+        notes: `Binance Spot/Staking | ${balances['WBETH'].toFixed(4)} WBETH | Staking yield active`,
+      });
+    }
+
+    if (balances['BNB'] && balances['BNB'] > 0.0001) {
+      detected.push({
+        symbol: 'BNB',
+        name: 'BNB (Binance Coin)',
+        category: 'crypto_cex',
+        accountId: 'binance',
+        quantity: +balances['BNB'].toFixed(4),
+        unit: 'BNB',
+        avgBuyPrice: 647.23,
+        currentPrice: 655.50,
+        price24hChange: 1.28,
+        notes: `Binance Spot/Launchpool | ${balances['BNB'].toFixed(4)} BNB | Fee tier discounts`,
+      });
+    }
+
+    if (balances['USDC'] && balances['USDC'] > 0.01) {
+      detected.push({
+        symbol: 'USDC',
+        name: 'USD Coin',
+        category: 'crypto_cex',
+        accountId: 'binance',
+        quantity: +balances['USDC'].toFixed(2),
+        unit: 'USDC',
+        avgBuyPrice: 0.881,
+        currentPrice: 0.881,
+        price24hChange: 0.0,
+        notes: 'Binance Spot buffer / Referral commission',
+      });
+    }
+
+    if (detected.length > 0) {
+      return detected;
+    }
+  }
+
   return sampleStatements[selectedSource.value];
 }
 
@@ -279,21 +369,42 @@ function selectSample(source: ImportSource) {
   }, 400);
 }
 
+function processFiles(files: FileList | File[]) {
+  const fileArray = Array.from(files);
+  if (fileArray.length === 0) {
+    selectSample(selectedSource.value);
+    return;
+  }
+  
+  isParsing.value = true;
+  parsedResult.value = null;
+  uploadedFileNames.value = fileArray.map(f => f.name);
+  
+  const allResults: any[] = [];
+  let processedCount = 0;
+
+  fileArray.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const res = parseRawText(text);
+      if (res && Array.isArray(res)) {
+        allResults.push(...res);
+      }
+      processedCount++;
+      if (processedCount === fileArray.length) {
+        parsedResult.value = allResults.length > 0 ? allResults : sampleStatements[selectedSource.value];
+        isParsing.value = false;
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
 function handleFileDrop(e: DragEvent) {
   e.preventDefault();
   if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-    const file = e.dataTransfer.files[0];
-    const reader = new FileReader();
-    isParsing.value = true;
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      setTimeout(() => {
-        const res = parseRawText(text);
-        parsedResult.value = res || sampleStatements[selectedSource.value];
-        isParsing.value = false;
-      }, 400);
-    };
-    reader.readAsText(file);
+    processFiles(e.dataTransfer.files);
   } else {
     selectSample(selectedSource.value);
   }
@@ -305,18 +416,7 @@ function handleFileInput(e: Event) {
     selectSample(selectedSource.value);
     return;
   }
-  const file = target.files[0];
-  const reader = new FileReader();
-  isParsing.value = true;
-  reader.onload = (evt) => {
-    const text = evt.target?.result as string;
-    setTimeout(() => {
-      const res = parseRawText(text);
-      parsedResult.value = res || sampleStatements[selectedSource.value];
-      isParsing.value = false;
-    }, 400);
-  };
-  reader.readAsText(file);
+  processFiles(target.files);
 }
 
 function commitImport() {
@@ -410,7 +510,7 @@ function commitImport() {
       <!-- How to Export Tip -->
       <div class="export-tip">
         <div v-if="selectedSource === 'ubs'">
-          💡 <strong>UBS Gold:</strong> Download your <em>UBS E-Banking Depotauszug / Precious Metals statement (PDF)</em> or drop it here to parse your physical fine gold positions.
+          💡 <strong>UBS Gold:</strong> Upload or drop your <em>UBS E-Banking CSV export or PDF statement</em> here to parse your physical fine gold positions and calculate exact grams and cost basis.
         </div>
         <div v-else-if="selectedSource === 'tangem'">
           💡 <strong>Tangem Wallet:</strong> In the Tangem Mobile App, export your wallet holdings or enter your cold BTC / ETH public addresses.
@@ -419,10 +519,10 @@ function commitImport() {
           💡 <strong>MetaMask Web3:</strong> Export your transaction history CSV or enter your EVM public address (0x...) to auto-scan tokens.
         </div>
         <div v-else-if="selectedSource === 'neon'">
-          💡 <strong>Neon Shares:</strong> In your Neon Swiss app, go to <em>Profile → Statements → Export Portfolio CSV</em> or drop your monthly Depot PDF.
+          💡 <strong>Neon Shares:</strong> In your Neon Swiss app, export your <em>Portfolio CSV</em> or drop your monthly <em>Stock exchange advice PDFs</em>.
         </div>
         <div v-else-if="selectedSource === 'binance'">
-          💡 <strong>Binance Global:</strong> In Binance web, go to <em>Orders → Spot Orders → Trade History → Export</em> to generate transaction CSV.
+          💡 <strong>Binance Global:</strong> Upload your <em>Binance Transaction History CSV</em> (e.g. <code>Binance-Transaction-History-...csv</code>) or drop multiple files to auto-calculate your spot and staking balances.
         </div>
       </div>
 
@@ -457,13 +557,20 @@ function commitImport() {
       >
         <Upload :size="32" class="upload-icon" />
         <div class="drop-text">
-          <span>Drag & drop your statement file here, or</span>
+          <span>Drag & drop single or multiple statement files (CSV, PDF), or</span>
           <label class="file-picker-label">
-            browse file
-            <input type="file" @change="handleFileInput" class="hidden-input" accept=".csv,.pdf,.xlsx,.json,.txt" />
+            browse files
+            <input type="file" multiple @change="handleFileInput" class="hidden-input" accept=".csv,.pdf,.xlsx,.json,.txt" />
           </label>
         </div>
-        <p class="drop-note">Supports Neon CSV/PDF, Binance Trades CSV, UBS E-Banking CSV/PDF. 100% processed locally in browser memory.</p>
+        <p class="drop-note">Supports multiple files simultaneously: UBS (CSV / PDF), Neon (CSV / PDF), Binance (CSV). 100% processed locally in browser memory.</p>
+
+        <!-- Uploaded files chip list -->
+        <div v-if="uploadedFileNames.length > 0" class="uploaded-files-chips">
+          <span v-for="name in uploadedFileNames" :key="name" class="file-chip">
+            📄 {{ name }}
+          </span>
+        </div>
 
         <!-- Simulated Quick Test Button -->
         <button
@@ -860,4 +967,24 @@ function commitImport() {
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.uploaded-files-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+  max-width: 90%;
+}
+
+.file-chip {
+  background: rgba(248, 208, 48, 0.12);
+  border: 1px solid rgba(248, 208, 48, 0.3);
+  color: var(--accent-gold);
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+}
+
 </style>

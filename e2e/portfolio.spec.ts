@@ -147,7 +147,25 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await expect(page.locator('.tx-card:has-text("Coinbase")').first()).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, '13-modal-neon-tranches.png') });
     await page.locator('.close-btn').click();
+
+    // 6. Open Binance Global vault details & verify WBETH, BNB, USDC holdings & trade ledger
+    await page.locator('.account-card:has-text("Binance Global")').click();
+    await expect(page.locator('.vault-title')).toHaveText('Binance Global');
+    await expect(page.locator('.holding-card:has-text("WBETH")')).toBeVisible();
+    await expect(page.locator('.holding-card:has-text("BNB")')).toBeVisible();
+    await expect(page.locator('.holding-card:has-text("USDC")')).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotsDir, '14-modal-binance-vault.png') });
+
+    // Switch to Binance 'Order Tranches' subtab
+    const binanceTranchesTab = page.locator('button.subtab-btn:has-text("Order Tranches")');
+    await expect(binanceTranchesTab).toBeVisible();
+    await binanceTranchesTab.click();
+    await expect(page.locator('.tx-card:has-text("WBETH")').first()).toBeVisible();
+    await expect(page.locator('.tx-card:has-text("BNB")').first()).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotsDir, '15-modal-binance-tranches.png') });
+    await page.locator('.close-btn').click();
   });
 });
+
 
 
