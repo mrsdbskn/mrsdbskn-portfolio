@@ -11,6 +11,7 @@ import {
   Lock,
   Globe,
   CheckCircle2,
+  Trash2,
 } from 'lucide-vue-next';
 
 const {
@@ -21,6 +22,7 @@ const {
   exportBackup,
   importBackup,
   resetToMockData,
+  clearAllPositions,
   fxRates,
 } = usePortfolio();
 
@@ -55,6 +57,14 @@ function handleFileRestore(e: Event) {
 function handleReset() {
   if (confirm('Are you sure you want to reset your portfolio back to the initial demo data? Any custom entries will be replaced.')) {
     resetToMockData();
+  }
+}
+
+function handleClearAll() {
+  if (confirm('Clear all positions to start completely fresh? You can enter your own real positions step by step, or reset to demo data anytime.')) {
+    clearAllPositions();
+    restoreStatus.value = 'Portfolio cleared! You can now add your own real vault holdings.';
+    setTimeout(() => { restoreStatus.value = ''; }, 3500);
   }
 }
 </script>
@@ -137,6 +147,11 @@ function handleReset() {
         <button class="btn btn-secondary reset-btn" @click="handleReset">
           <RotateCcw :size="16" />
           <span>Reset to Demo Data</span>
+        </button>
+
+        <button class="btn btn-secondary clear-btn" @click="handleClearAll">
+          <Trash2 :size="16" />
+          <span>Clear All Positions (Start Fresh)</span>
         </button>
       </div>
 

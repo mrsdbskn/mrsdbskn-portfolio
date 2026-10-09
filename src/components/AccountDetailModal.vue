@@ -2,13 +2,9 @@
 import { computed } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
 import type { AccountType, Asset } from '../types/portfolio';
+import VaultLogo from './VaultLogo.vue';
 import {
   X,
-  ShieldCheck,
-  Wallet,
-  Coins,
-  Landmark,
-  TrendingUp,
   Plus,
   Edit2,
   Trash2,
@@ -47,17 +43,6 @@ const accountAssets = computed(() => {
   if (!props.accountId) return [];
   return assets.value.filter(a => a.accountId === props.accountId);
 });
-
-function getIcon(name?: string) {
-  switch (name) {
-    case 'ShieldCheck': return ShieldCheck;
-    case 'Wallet': return Wallet;
-    case 'Coins': return Coins;
-    case 'Landmark': return Landmark;
-    case 'TrendingUp': return TrendingUp;
-    default: return Wallet;
-  }
-}
 </script>
 
 <template>
@@ -68,9 +53,9 @@ function getIcon(name?: string) {
         <div class="header-left">
           <div
             class="vault-avatar"
-            :style="{ backgroundColor: `${currentAccount.color}20`, borderColor: `${currentAccount.color}40`, color: currentAccount.color }"
+            :style="{ backgroundColor: `${currentAccount.color}15`, borderColor: `${currentAccount.color}40` }"
           >
-            <component :is="getIcon(currentAccount.iconName)" :size="24" />
+            <VaultLogo :type="currentAccount.id" :size="30" />
           </div>
           <div>
             <div class="vault-title-row">

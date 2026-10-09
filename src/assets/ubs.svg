@@ -1,0 +1,24 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- UBS Swiss 3-Keys Emblem -->
+  <!-- Left Key -->
+  <g fill="#EAB308">
+    <circle cx="36" cy="36" r="14" stroke="#EAB308" stroke-width="4.5" fill="none" />
+    <circle cx="36" cy="36" r="5" fill="#EAB308" />
+    <rect x="33.5" y="48" width="5" height="42" rx="2" />
+    <path d="M26 84H36V89H31V93H26V84Z" />
+  </g>
+  <!-- Center Key (Longer) -->
+  <g fill="#F8D030">
+    <circle cx="60" cy="28" r="16" stroke="#F8D030" stroke-width="5" fill="none" />
+    <circle cx="60" cy="28" r="6" fill="#F8D030" />
+    <rect x="57" y="42" width="6" height="56" rx="2.5" />
+    <path d="M51 90H60V95H54V99H51V90Z" />
+  </g>
+  <!-- Right Key -->
+  <g fill="#EAB308">
+    <circle cx="84" cy="36" r="14" stroke="#EAB308" stroke-width="4.5" fill="none" />
+    <circle cx="84" cy="36" r="5" fill="#EAB308" />
+    <rect x="81.5" y="48" width="5" height="42" rx="2" />
+    <path d="M84 84H94V93H89V89H84V84Z" />
+  </g>
+</svg>

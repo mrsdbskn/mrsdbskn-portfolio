@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
+import VaultLogo from './VaultLogo.vue';
 import {
   X,
   Upload,
-  FileText,
   CheckCircle2,
   ArrowRight,
-  ShieldCheck,
-  FileSpreadsheet,
 } from 'lucide-vue-next';
 
 const emit = defineEmits<{
@@ -17,14 +15,92 @@ const emit = defineEmits<{
 
 const { addAsset } = usePortfolio();
 
-type ImportSource = 'neon' | 'binance' | 'ubs' | 'web3';
-const selectedSource = ref<ImportSource>('neon');
+type ImportSource = 'ubs' | 'tangem' | 'metamask' | 'neon' | 'binance';
+const selectedSource = ref<ImportSource>('ubs');
 const isParsing = ref<boolean>(false);
 const parsedResult = ref<any[] | null>(null);
 const successMessage = ref<string>('');
 
 // Sample statements ready for 1-click preview
 const sampleStatements: Record<ImportSource, any[]> = {
+  ubs: [
+    {
+      symbol: 'XAU-50G',
+      name: 'UBS 50g Fine Gold 999.9 Minted Bar',
+      category: 'gold',
+      accountId: 'ubs',
+      quantity: 50,
+      unit: 'grams',
+      avgBuyPrice: 62.10,
+      currentPrice: 76.80,
+      price24hChange: 0.45,
+      notes: 'UBS Precious Metals Statement / Depotauszug',
+    },
+    {
+      symbol: 'XAU-100G',
+      name: 'UBS 100g Fine Gold 999.9 Bar',
+      category: 'gold',
+      accountId: 'ubs',
+      quantity: 100,
+      unit: 'grams',
+      avgBuyPrice: 63.20,
+      currentPrice: 76.80,
+      price24hChange: 0.45,
+      notes: 'Allocated Physical Vault Safekeeping',
+    },
+  ],
+  tangem: [
+    {
+      symbol: 'BTC',
+      name: 'Bitcoin (Tangem Cold Vault)',
+      category: 'crypto_cold',
+      accountId: 'tangem',
+      quantity: 0.45,
+      unit: 'BTC',
+      avgBuyPrice: 54200,
+      currentPrice: 62450,
+      price24hChange: 2.14,
+      notes: 'Tangem Card Backup Set 1',
+    },
+    {
+      symbol: 'ETH',
+      name: 'Ethereum (Tangem Cold Storage)',
+      category: 'crypto_cold',
+      accountId: 'tangem',
+      quantity: 3.2,
+      unit: 'ETH',
+      avgBuyPrice: 2850,
+      currentPrice: 3420,
+      price24hChange: -1.05,
+      notes: 'Long-term Cold Storage',
+    },
+  ],
+  metamask: [
+    {
+      symbol: 'BASE-AERO',
+      name: 'Aerodrome Finance',
+      category: 'crypto_hot',
+      accountId: 'metamask',
+      quantity: 450,
+      unit: 'AERO',
+      avgBuyPrice: 0.95,
+      currentPrice: 1.15,
+      price24hChange: 3.4,
+      notes: 'Base Network Liquidity Pool',
+    },
+    {
+      symbol: 'USDC',
+      name: 'USD Coin (Arbitrum)',
+      category: 'crypto_hot',
+      accountId: 'metamask',
+      quantity: 1200,
+      unit: 'USDC',
+      avgBuyPrice: 0.88,
+      currentPrice: 0.88,
+      price24hChange: 0.0,
+      notes: 'Arbitrum DeFi Reserve',
+    },
+  ],
   neon: [
     {
       symbol: 'CHSPI',
@@ -64,33 +140,17 @@ const sampleStatements: Record<ImportSource, any[]> = {
       price24hChange: -0.65,
       notes: 'Binance Trade Export (Q3 Execution)',
     },
-  ],
-  ubs: [
     {
-      symbol: 'XAU-50G',
-      name: 'UBS 50g Fine Gold 999.9 Minted Bar',
-      category: 'gold',
-      accountId: 'ubs',
-      quantity: 50,
-      unit: 'grams',
-      avgBuyPrice: 62.10,
-      currentPrice: 76.80,
-      price24hChange: 0.45,
-      notes: 'UBS Precious Metals Depotauszug',
-    },
-  ],
-  web3: [
-    {
-      symbol: 'BASE-AERO',
-      name: 'Aerodrome Finance',
-      category: 'crypto_hot',
-      accountId: 'metamask',
-      quantity: 450,
-      unit: 'AERO',
-      avgBuyPrice: 0.95,
-      currentPrice: 1.15,
-      price24hChange: 3.4,
-      notes: 'Base Network Liquidity Pool',
+      symbol: 'BNB',
+      name: 'BNB (Binance Ecosystem)',
+      category: 'crypto_cex',
+      accountId: 'binance',
+      quantity: 5,
+      unit: 'BNB',
+      avgBuyPrice: 510.00,
+      currentPrice: 585.00,
+      price24hChange: 1.25,
+      notes: 'Binance Launchpool & Spot',
     },
   ],
 };
@@ -160,10 +220,37 @@ function commitImport() {
       <div class="source-selector">
         <button
           class="source-tab"
+          :class="{ active: selectedSource === 'ubs' }"
+          @click="selectedSource = 'ubs'; parsedResult = null;"
+        >
+          <VaultLogo type="ubs" :size="18" />
+          <span>UBS Gold</span>
+        </button>
+
+        <button
+          class="source-tab"
+          :class="{ active: selectedSource === 'tangem' }"
+          @click="selectedSource = 'tangem'; parsedResult = null;"
+        >
+          <VaultLogo type="tangem" :size="18" />
+          <span>Tangem</span>
+        </button>
+
+        <button
+          class="source-tab"
+          :class="{ active: selectedSource === 'metamask' }"
+          @click="selectedSource = 'metamask'; parsedResult = null;"
+        >
+          <VaultLogo type="metamask" :size="18" />
+          <span>MetaMask</span>
+        </button>
+
+        <button
+          class="source-tab"
           :class="{ active: selectedSource === 'neon' }"
           @click="selectedSource = 'neon'; parsedResult = null;"
         >
-          <FileSpreadsheet :size="15" />
+          <VaultLogo type="neon" :size="18" />
           <span>Neon Shares</span>
         </button>
 
@@ -172,42 +259,27 @@ function commitImport() {
           :class="{ active: selectedSource === 'binance' }"
           @click="selectedSource = 'binance'; parsedResult = null;"
         >
-          <FileText :size="15" />
-          <span>Binance CSV</span>
-        </button>
-
-        <button
-          class="source-tab"
-          :class="{ active: selectedSource === 'ubs' }"
-          @click="selectedSource = 'ubs'; parsedResult = null;"
-        >
-          <FileText :size="15" />
-          <span>UBS Gold PDF</span>
-        </button>
-
-        <button
-          class="source-tab"
-          :class="{ active: selectedSource === 'web3' }"
-          @click="selectedSource = 'web3'; parsedResult = null;"
-        >
-          <ShieldCheck :size="15" />
-          <span>Address Scan</span>
+          <VaultLogo type="binance" :size="18" />
+          <span>Binance</span>
         </button>
       </div>
 
       <!-- How to Export Tip -->
       <div class="export-tip">
-        <div v-if="selectedSource === 'neon'">
-          💡 <strong>Neon Tip:</strong> In the Neon app, go to <em>Profile → Statements → Export Portfolio CSV</em> or save monthly PDF.
+        <div v-if="selectedSource === 'ubs'">
+          💡 <strong>UBS Gold:</strong> Download your <em>UBS E-Banking Depotauszug / Precious Metals statement (PDF)</em> or drop it here to parse your physical fine gold positions.
+        </div>
+        <div v-else-if="selectedSource === 'tangem'">
+          💡 <strong>Tangem Wallet:</strong> In the Tangem Mobile App, export your wallet holdings or enter your cold BTC / ETH public addresses.
+        </div>
+        <div v-else-if="selectedSource === 'metamask'">
+          💡 <strong>MetaMask Web3:</strong> Export your transaction history CSV or enter your EVM public address (0x...) to auto-scan tokens.
+        </div>
+        <div v-else-if="selectedSource === 'neon'">
+          💡 <strong>Neon Shares:</strong> In your Neon Swiss app, go to <em>Profile → Statements → Export Portfolio CSV</em> or drop your monthly Depot PDF.
         </div>
         <div v-else-if="selectedSource === 'binance'">
-          💡 <strong>Binance Tip:</strong> Go to <em>Orders → Spot Orders → Trade History → Export</em> to generate transaction CSV.
-        </div>
-        <div v-else-if="selectedSource === 'ubs'">
-          💡 <strong>UBS Gold Tip:</strong> Download your <em>UBS E-Banking Depotauszug / Precious Metals statement (PDF)</em>.
-        </div>
-        <div v-else>
-          💡 <strong>Tangem / MetaMask Tip:</strong> Enter public wallet address or ENS name to auto-scan tokens on-chain.
+          💡 <strong>Binance Global:</strong> In Binance web, go to <em>Orders → Spot Orders → Trade History → Export</em> to generate transaction CSV.
         </div>
       </div>
 
@@ -365,9 +437,10 @@ function commitImport() {
 }
 
 .source-tab.active {
-  background: rgba(0, 210, 255, 0.15);
-  border-color: rgba(0, 210, 255, 0.35);
-  color: var(--accent-cyan);
+  background: rgba(248, 208, 48, 0.15);
+  border-color: rgba(248, 208, 48, 0.4);
+  color: var(--accent-gold);
+  box-shadow: 0 0 10px rgba(248, 208, 48, 0.15);
 }
 
 .export-tip {

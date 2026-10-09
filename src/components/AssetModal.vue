@@ -2,7 +2,8 @@
 import { ref, watch, computed } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
 import type { AccountType, Asset, AssetCategory } from '../types/portfolio';
-import { X, Check } from 'lucide-vue-next';
+import VaultLogo from './VaultLogo.vue';
+import { X, Check, Zap } from 'lucide-vue-next';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -14,6 +15,53 @@ const emit = defineEmits<{
 }>();
 
 const { accounts, addAsset, updateAsset } = usePortfolio();
+
+interface QuickPreset {
+  symbol: string;
+  name: string;
+  unit: string;
+  avgBuyPrice: number;
+  currentPrice: number;
+  price24hChange: number;
+}
+
+const PRESETS: Record<AccountType, QuickPreset[]> = {
+  ubs: [
+    { symbol: 'XAU-50G', name: 'UBS 50g Fine Gold 999.9 Bar', unit: 'grams', avgBuyPrice: 62.50, currentPrice: 76.80, price24hChange: 0.45 },
+    { symbol: 'XAU-100G', name: 'UBS 100g Fine Gold 999.9 Bar', unit: 'grams', avgBuyPrice: 63.10, currentPrice: 76.80, price24hChange: 0.45 },
+    { symbol: 'XAU-1OZ', name: 'UBS 1 oz Gold Bar (31.1g)', unit: 'oz', avgBuyPrice: 1980, currentPrice: 2388, price24hChange: 0.45 },
+  ],
+  tangem: [
+    { symbol: 'BTC', name: 'Bitcoin (Tangem Cold)', unit: 'BTC', avgBuyPrice: 54200, currentPrice: 62450, price24hChange: 2.14 },
+    { symbol: 'ETH', name: 'Ethereum (Tangem Cold)', unit: 'ETH', avgBuyPrice: 2850, currentPrice: 3420, price24hChange: -1.05 },
+    { symbol: 'SOL', name: 'Solana (Tangem Cold)', unit: 'SOL', avgBuyPrice: 110, currentPrice: 148, price24hChange: 3.8 },
+  ],
+  metamask: [
+    { symbol: 'ETH', name: 'Ethereum (Web3 / Base)', unit: 'ETH', avgBuyPrice: 3100, currentPrice: 3420, price24hChange: -1.05 },
+    { symbol: 'USDC', name: 'USD Coin (Arbitrum / Base)', unit: 'USDC', avgBuyPrice: 0.88, currentPrice: 0.88, price24hChange: 0.0 },
+    { symbol: 'AERO', name: 'Aerodrome Finance (Base)', unit: 'AERO', avgBuyPrice: 0.95, currentPrice: 1.15, price24hChange: 3.4 },
+  ],
+  neon: [
+    { symbol: 'CHSPI', name: 'UBS ETF (CH) SMI (Re-invested)', unit: 'shares', avgBuyPrice: 139.50, currentPrice: 142.20, price24hChange: 0.28 },
+    { symbol: 'SMIM', name: 'iShares SMIM ETF (CH)', unit: 'shares', avgBuyPrice: 280.00, currentPrice: 294.50, price24hChange: 0.85 },
+    { symbol: 'VWRL', name: 'Vanguard FTSE All-World UCITS ETF', unit: 'shares', avgBuyPrice: 104.20, currentPrice: 118.90, price24hChange: 0.42 },
+    { symbol: 'NESN', name: 'Nestlé SA (SIX: NESN)', unit: 'shares', avgBuyPrice: 88.50, currentPrice: 84.60, price24hChange: -0.35 },
+  ],
+  binance: [
+    { symbol: 'BNB', name: 'BNB (Binance Ecosystem)', unit: 'BNB', avgBuyPrice: 510, currentPrice: 585, price24hChange: 1.25 },
+    { symbol: 'SOL', name: 'Solana (Binance Spot)', unit: 'SOL', avgBuyPrice: 135.00, currentPrice: 148.50, price24hChange: -0.65 },
+    { symbol: 'BTC', name: 'Bitcoin (Binance Trading)', unit: 'BTC', avgBuyPrice: 59800, currentPrice: 62450, price24hChange: 2.14 },
+  ],
+};
+
+function applyPreset(preset: QuickPreset) {
+  form.value.symbol = preset.symbol;
+  form.value.name = preset.name;
+  form.value.unit = preset.unit;
+  form.value.avgBuyPrice = preset.avgBuyPrice;
+  form.value.currentPrice = preset.currentPrice;
+  form.value.price24hChange = preset.price24hChange;
+}
 
 const form = ref({
   accountId: 'tangem' as AccountType,
@@ -138,10 +186,31 @@ function saveAsset() {
               type="button"
               class="account-select-btn"
               :class="{ selected: form.accountId === acc.id }"
-              :style="form.accountId === acc.id ? { borderColor: acc.color, color: acc.color } : {}"
+              :style="form.accountId === acc.id ? { borderColor: acc.color, color: acc.color, backgroundColor: `${acc.color}18` } : {}"
               @click="form.accountId = acc.id; handleAccountChange();"
             >
+              <VaultLogo :type="acc.id" :size="18" />
               <span>{{ acc.name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Presets Helper Chips -->
+        <div v-if="!isEditing && PRESETS[form.accountId]?.length" class="presets-section">
+          <span class="presets-label">
+            <Zap :size="12" class="zap-icon" />
+            Quick Suggestions for {{ accounts.find(a => a.id === form.accountId)?.name }}:
+          </span>
+          <div class="presets-chips">
+            <button
+              v-for="p in PRESETS[form.accountId]"
+              :key="p.symbol"
+              type="button"
+              class="preset-chip"
+              @click="applyPreset(p)"
+            >
+              <strong>{{ p.symbol }}</strong>
+              <span>{{ p.name.split('(')[0].trim() }}</span>
             </button>
           </div>
         </div>
@@ -366,12 +435,16 @@ function saveAsset() {
 }
 
 .account-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 10px;
+  padding: 9px 12px;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -380,7 +453,57 @@ function saveAsset() {
 
 .account-select-btn.selected {
   background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+  box-shadow: 0 0 12px rgba(248, 208, 48, 0.2);
+}
+
+.presets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(248, 208, 48, 0.05);
+  border: 1px solid rgba(248, 208, 48, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.presets-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.zap-icon {
+  color: var(--accent-gold);
+}
+
+.presets-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.preset-chip:hover {
+  background: rgba(248, 208, 48, 0.15);
+  border-color: rgba(248, 208, 48, 0.4);
+  color: var(--accent-gold);
+  transform: translateY(-1px);
 }
 
 .form-row-2 {

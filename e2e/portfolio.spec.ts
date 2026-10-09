@@ -105,7 +105,8 @@ test.describe('Aura Portfolio E2E & Visual Verification', () => {
     await page.locator('button:has-text("Import Statement")').first().click();
     await expect(page.locator('.modal-title')).toHaveText('Smart Statement & CSV/PDF Parser');
     
-    // Click 'Load NEON Sample Extract'
+    // Click 'Neon Shares' tab and load extract
+    await page.locator('.source-tab:has-text("Neon Shares")').click();
     await page.locator('button:has-text("Load NEON Sample Extract")').click();
     await page.waitForTimeout(800);
     await expect(page.locator('.preview-box')).toBeVisible();

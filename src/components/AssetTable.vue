@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { usePortfolio } from '../composables/usePortfolio';
 import type { Asset } from '../types/portfolio';
+import VaultLogo from './VaultLogo.vue';
 import {
   Search,
   ArrowUpRight,
@@ -124,35 +125,40 @@ function getSparklinePoints(sparkline: number[]): string {
         :class="{ active: activeCategoryFilter === 'crypto_cold' }"
         @click="activeCategoryFilter = 'crypto_cold'"
       >
-        Cold Crypto (Tangem)
+        <VaultLogo type="tangem" :size="14" />
+        <span>Cold Crypto (Tangem)</span>
       </button>
       <button
         class="cat-tab"
         :class="{ active: activeCategoryFilter === 'equities' }"
         @click="activeCategoryFilter = 'equities'"
       >
-        Shares & ETFs (Neon)
+        <VaultLogo type="neon" :size="14" />
+        <span>Shares & ETFs (Neon)</span>
       </button>
       <button
         class="cat-tab"
         :class="{ active: activeCategoryFilter === 'gold' }"
         @click="activeCategoryFilter = 'gold'"
       >
-        Precious Gold (UBS)
+        <VaultLogo type="ubs" :size="14" />
+        <span>Precious Gold (UBS)</span>
       </button>
       <button
         class="cat-tab"
         :class="{ active: activeCategoryFilter === 'crypto_cex' }"
         @click="activeCategoryFilter = 'crypto_cex'"
       >
-        CEX (Binance)
+        <VaultLogo type="binance" :size="14" />
+        <span>CEX (Binance)</span>
       </button>
       <button
         class="cat-tab"
         :class="{ active: activeCategoryFilter === 'crypto_hot' }"
         @click="activeCategoryFilter = 'crypto_hot'"
       >
-        Web3 (MetaMask)
+        <VaultLogo type="metamask" :size="14" />
+        <span>Web3 (MetaMask)</span>
       </button>
     </div>
 
@@ -197,7 +203,8 @@ function getSparklinePoints(sparkline: number[]): string {
                   <div class="asset-symbol-row">
                     <span class="asset-symbol">{{ asset.symbol }}</span>
                     <span class="account-tag" :style="{ color: asset.accountColor, borderColor: `${asset.accountColor}30` }">
-                      {{ asset.accountName }}
+                      <VaultLogo :type="asset.accountId" :size="12" />
+                      <span>{{ asset.accountName }}</span>
                     </span>
                   </div>
                   <span class="asset-fullname">{{ asset.name }}</span>
@@ -398,6 +405,9 @@ function getSparklinePoints(sparkline: number[]): string {
 }
 
 .cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
@@ -535,6 +545,9 @@ function getSparklinePoints(sparkline: number[]): string {
 }
 
 .account-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.65rem;
   font-weight: 700;
   padding: 1px 6px;

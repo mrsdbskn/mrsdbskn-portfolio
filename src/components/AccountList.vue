@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { usePortfolio } from '../composables/usePortfolio';
 import type { AccountType } from '../types/portfolio';
+import VaultLogo from './VaultLogo.vue';
 import {
-  ShieldCheck,
-  Wallet,
-  Coins,
-  Landmark,
-  TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
   ChevronRight,
@@ -24,17 +20,6 @@ const {
   selectedAccountId,
   setSelectedAccount,
 } = usePortfolio();
-
-function getAccountIcon(iconName: string) {
-  switch (iconName) {
-    case 'ShieldCheck': return ShieldCheck;
-    case 'Wallet': return Wallet;
-    case 'Coins': return Coins;
-    case 'Landmark': return Landmark;
-    case 'TrendingUp': return TrendingUp;
-    default: return Wallet;
-  }
-}
 
 function handleCardClick(accId: AccountType) {
   if (selectedAccountId.value === accId) {
@@ -76,8 +61,8 @@ function handleCardClick(accId: AccountType) {
       >
         <!-- Card Top -->
         <div class="card-top">
-          <div class="account-icon-box" :style="{ backgroundColor: `${acc.color}20`, borderColor: `${acc.color}40`, color: acc.color }">
-            <component :is="getAccountIcon(acc.iconName)" :size="20" />
+          <div class="account-icon-box" :style="{ backgroundColor: `${acc.color}15`, borderColor: `${acc.color}40` }">
+            <VaultLogo :type="acc.id" :size="24" />
           </div>
 
           <div class="account-badge-pill" :style="{ color: acc.color, borderColor: `${acc.color}30` }">

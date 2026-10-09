@@ -1,0 +1,8 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Neon Swiss Digital Bank Emblem -->
+  <rect width="100" height="100" rx="24" fill="#0D111A" />
+  <!-- Neon's distinctive geometric 'n' in electric green -->
+  <path d="M28 72V36C28 30.5 32.5 26 38 26C43.5 26 48 30.5 48 36V72" stroke="#00E5A3" stroke-width="10" stroke-linecap="round" />
+  <path d="M52 48C56 42 62 38 69 38C76 38 82 44 82 52V72" stroke="#00E5A3" stroke-width="10" stroke-linecap="round" />
+  <circle cx="78" cy="24" r="5" fill="#F8D030" />
+</svg>

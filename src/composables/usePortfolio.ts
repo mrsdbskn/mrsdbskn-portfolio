@@ -302,6 +302,10 @@ export function usePortfolio() {
     assets.value = assets.value.filter(a => a.id !== id);
   }
 
+  function clearAllPositions() {
+    assets.value = [];
+  }
+
   function resetToMockData() {
     assets.value = JSON.parse(JSON.stringify(INITIAL_ASSETS));
     accounts.value = JSON.parse(JSON.stringify(INITIAL_ACCOUNTS));
@@ -396,6 +400,7 @@ export function usePortfolio() {
     addAsset,
     updateAsset,
     deleteAsset,
+    clearAllPositions,
     resetToMockData,
     refreshData,
     exportBackup,
